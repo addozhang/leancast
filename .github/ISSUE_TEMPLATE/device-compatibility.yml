@@ -1,0 +1,88 @@
+name: Device compatibility report
+description: Report LeanCast working (or not) on a specific TV / box
+title: "[Compat] <device model> — <result>"
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping build the LeanCast compatibility matrix!
+        Everything you fill in here goes straight into the
+        [supported devices table](../#supported-devices) in the README.
+
+  - type: input
+    id: device
+    attributes:
+      label: Device model
+      description: e.g. Amazon Fire TV Stick 4K, Xiaomi TV ES55, Sony X90J, H96 Max X2
+      placeholder: Amazon Fire TV Stick 4K
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS family
+      options:
+        - Fire OS
+        - Android TV / Google TV
+        - MIUI TV / PatchWall (Xiaomi CN)
+        - Generic AOSP box (Amlogic / Rockchip)
+        - Other (describe below)
+    validations:
+      required: true
+
+  - type: input
+    id: android-version
+    attributes:
+      label: Android version
+      description: From device Info / `adb shell getprop ro.build.version.release`
+      placeholder: "9"
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: LeanCast version
+      description: From app Info / device description endpoint
+      placeholder: 0.2.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: sender
+    attributes:
+      label: Sender app used
+      options:
+        - Bilibili
+        - Tencent Video
+        - Youku
+        - iQiyi
+        - CCTV (央视频)
+        - Quark
+        - Multiple / Other (describe below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Result
+      options:
+        - ✅ Works
+        - 🟡 Works with issues
+        - 🔍 Not discovered by sender
+        - 📺 Discovers but no picture / no sound
+        - 💥 Crashes
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: |
+        What happened? What worked and what didn't?
+        `adb logcat -d` output right after the failure is extremely helpful
+        (look for the `LeanCastPlayer` tag).

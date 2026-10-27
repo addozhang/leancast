@@ -47,6 +47,27 @@ Launch the app once to start the receiver service; it then appears in every
 DLNA sender's device list under the receiver name (rename it in the app).
 Optional: enable **Start on boot** in the app.
 
+## Supported devices
+
+LeanCast is a pure-Kotlin APK with **no native libraries** and `minSdk 21`
+(Android 5.0, 2014), so a single artifact covers `armeabi-v7a`, `arm64-v8a`,
+`x86` and `x86_64`. Decoding uses each device's platform `MediaCodec`, so codec
+coverage follows the device: H.264 everywhere, HEVC/4K on 2016+ TVs, AV1 only
+on newer boxes.
+
+| Tier | Devices | Notes |
+| :--- | :--- | :--- |
+| ✅ Verified | Amazon Fire TV / Fire TV Stick (Fire OS 6/7) | Primary test device: Fire OS 7.7, 32-bit MTK SoC |
+| ✅ Expected | Certified Android TV / Google TV (Sony, TCL, Philips, Chromecast w/ Google TV), NVIDIA Shield, Amlogic / Rockchip boxes, Xiaomi international boxes | Sideload and go |
+| ⚠️ Experimental | CN smart TVs with sideloading (MIUI TV / PatchWall, Coocaa, Hisense Android models), Tmall boxes (YunOS) | Enable "unknown sources"; report results via the compatibility issue template |
+| ❌ Unsupported | Samsung (Tizen), LG (webOS), Huawei Vision (HarmonyOS), non-smart TVs | No Android app runtime — use any TV box from the ✅ tiers |
+
+Notes:
+- Phone "system cast" (Miracast) is out of scope — LeanCast is a DLNA/UPnP
+  receiver, so use the `[TV]` button inside video apps.
+- Tested an unlisted device? Open a **Device compatibility report** issue and
+  help grow the matrix.
+
 ## Releases & CI
 
 Two GitHub Actions workflows ship with the repo:
