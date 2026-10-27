@@ -49,7 +49,6 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
         main.post {
             val p = obtain()
             val mime = MimeInference.guessMimeType(uri)
-            Log.i(TAG, "prepare mime=$mime uri=$uri")
             val item = MediaItem.Builder().setUri(uri).setMimeType(mime).build()
             // Route explicitly: DefaultMediaSourceFactory's inference misses
             // CN CDNs whose manifests hide "m3u8" mid-path (youku et al.).

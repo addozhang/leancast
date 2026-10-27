@@ -30,3 +30,4 @@
 - [x] 6.1 Auto-start playback on non-empty SetAVTransportURI (bilibili sends Set + polls, never Play); Play made idempotent
 - [x] 6.2 Explicit Hls/Progressive MediaSource routing (DefaultMediaSourceFactory inference missed mid-path "m3u8"); prepare logging with resolved MIME
 - [x] 6.3 Verified on TV: youku HLS (captured live URL) plays via Set-only cast; 12/12 E2E regression green
+- [x] 6.4 Remove request-level diagnostic logging (kept spec'd error-path logs only); 12/12 E2E regression green
