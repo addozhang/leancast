@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity() {
                 strokeWidthPx = dp(1),
                 radiusPx = dp(20).toFloat(),
             )
-            setPadding(dp(32), dp(28), dp(32), dp(28))
+            setPadding(dp(32), dp(20), dp(32), dp(20))
         }
 
         // Top row: Icon + Brand + Status Badge
@@ -178,13 +178,13 @@ class MainActivity : AppCompatActivity() {
             typeface = Typeface.DEFAULT_BOLD
             letterSpacing = 0.08f
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(22)
+            topMargin = dp(14)
         })
 
         heroDeviceName = TextView(this).apply {
             text = settings.friendlyName()
             setTextColor(Color.parseColor("#FFFFFF"))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 38f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 34f)
             typeface = Typeface.create("sans-serif-black", Typeface.BOLD)
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
@@ -211,15 +211,15 @@ class MainActivity : AppCompatActivity() {
         )
         specList.addView(epRow.first, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-        ).apply { bottomMargin = dp(6) })
+        ).apply { bottomMargin = dp(5) })
         specList.addView(protoRow.first, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-        ).apply { bottomMargin = dp(6) })
+        ).apply { bottomMargin = dp(5) })
         specList.addView(codecRow.first, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
         ))
         card.addView(specList, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(14)
+            topMargin = dp(12)
         })
 
         // Now Playing Box
@@ -231,7 +231,7 @@ class MainActivity : AppCompatActivity() {
                 strokeWidthPx = dp(1),
                 radiusPx = dp(12).toFloat(),
             )
-            setPadding(dp(16), dp(12), dp(16), dp(12))
+            setPadding(dp(14), dp(10), dp(14), dp(10))
         }
         nowBox.addView(TextView(this).apply {
             text = getString(R.string.label_now_playing)
@@ -244,14 +244,14 @@ class MainActivity : AppCompatActivity() {
             text = getString(R.string.label_idle_hint)
             setTextColor(Color.parseColor("#CBD5E1"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            maxLines = 1
+            maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
         }
         nowBox.addView(nowPlayingTitle, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(4)
         })
         card.addView(nowBox, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(18)
+            topMargin = dp(12)
         })
 
         // Spacer
@@ -260,7 +260,7 @@ class MainActivity : AppCompatActivity() {
         // 3-step Guide Footer
         val guideBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(12), 0, 0)
+            setPadding(0, dp(8), 0, 0)
         }
         guideBox.addView(TextView(this).apply {
             text = getString(R.string.guide_title)
@@ -437,7 +437,7 @@ class MainActivity : AppCompatActivity() {
             text = subtitle
             setTextColor(Color.parseColor("#94A3B8"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            maxLines = 1
+            maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
         }
         textCol.addView(titleView)
@@ -475,7 +475,7 @@ class MainActivity : AppCompatActivity() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), dp(9), dp(14), dp(9))
+            setPadding(dp(14), dp(7), dp(14), dp(7))
             background = roundedRect(
                 fillColor = Color.parseColor("#0B1120"),
                 strokeColor = Color.parseColor("#1E293B"),
@@ -511,7 +511,7 @@ class MainActivity : AppCompatActivity() {
         this.text = text
         setTextColor(Color.parseColor("#94A3B8"))
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        setPadding(0, dp(4), 0, 0)
+        setPadding(0, dp(3), 0, 0)
     }
 
     private fun renderStatus() {
