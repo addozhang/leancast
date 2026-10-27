@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App title: generic, localizable. The receiver friendly name is a user setting. -->
+    <string name="app_name">LeanCast</string>
+</resources>
