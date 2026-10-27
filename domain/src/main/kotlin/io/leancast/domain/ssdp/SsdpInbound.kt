@@ -11,6 +11,7 @@ sealed interface SsdpInbound {
         val mxSeconds: Int?,
         val man: String?,
         val from: InetAddress,
+        val fromPort: Int = 0,
     ) : SsdpInbound
 
     /** Anything we do not act on (other devices' traffic, malformed frames). */
@@ -20,7 +21,7 @@ sealed interface SsdpInbound {
 /** Parses raw SSDP datagrams. Pure; no sockets here. */
 object SsdpMessageParser {
 
-    fun parse(datagram: ByteArray, from: InetAddress): SsdpInbound {
+    fun parse(datagram: ByteArray, from: InetAddress, fromPort: Int = 0): SsdpInbound {
         val text = datagram.decodeToString().trimEnd('\u0000')
         val firstLineEnd = text.indexOf("\r\n").let { if (it == -1) text.length else it }
         val startLine = text.substring(0, firstLineEnd).trim { it == ' ' || it == '\r' || it == '\n' }
@@ -40,6 +41,7 @@ object SsdpMessageParser {
             mxSeconds = headers["MX"]?.trim()?.toIntOrNull(),
             man = man,
             from = from,
+            fromPort = fromPort,
         )
     }
 

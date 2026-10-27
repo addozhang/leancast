@@ -94,7 +94,7 @@ class DeviceDescriptionTest {
 
     @Test
     fun `CM SCPD lists GetProtocolInfo`() {
-        val dom = parseXml(doc.scpdCm())
+        val dom = parseXml(doc.scpdCmn())
         val actions = dom.getElementsByTagName("name").let { nodes ->
             (0 until nodes.length).map { nodes.item(it).textContent }
         }

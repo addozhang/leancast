@@ -159,7 +159,7 @@ class DeviceDescriptionDoc(private val desc: RendererDescription) {
 </scpd>
 """
 
-    fun scpdCm(): String = """<?xml version="1.0" encoding="UTF-8"?>
+    fun scpdCmn(): String = """<?xml version="1.0" encoding="UTF-8"?>
 <scpd xmlns="urn:schemas-upnp-org:service-1-0">
   <specVersion><major>1</major><minor>0</minor></specVersion>
   <actionList>

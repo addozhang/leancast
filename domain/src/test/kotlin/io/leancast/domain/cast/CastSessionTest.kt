@@ -40,7 +40,7 @@ class CastSessionTest {
 
     private val port = FakePort()
     private val listener = RecordingListener()
-    private val session = CastSession(port).apply { setListener(listener) }
+    private val session = CastSession(port).apply { addListener(listener) }
 
     @Test
     fun `full happy path walks the spec state sequence`() {

@@ -68,7 +68,7 @@ object SoapParser {
                 }
                 inBody && evt == XmlPullParser.START_TAG && action != null &&
                     parser.depth == actionDepth + 1 -> {
-                    args[name.substringAfterLast(':')] = parser.nextText()
+                    args[name.substringAfterLast(':')] = captureArgText(parser)
                 }
             }
         }
@@ -79,6 +79,34 @@ object SoapParser {
 
     private fun bodyArgs(body: String): Map<String, String> =
         routeFromBody(body)?.third ?: emptyMap()
+
+    /**
+     * Captures an argument's text content, tolerating senders that embed raw
+     * (unescaped) XML inside the argument element: child elements are
+     * re-serialized into the returned string.
+     */
+    private fun captureArgText(parser: XmlPullParser): String {
+        val depth = parser.depth
+        val out = StringBuilder()
+        while (parser.next() != XmlPullParser.END_DOCUMENT) {
+            when (parser.eventType) {
+                XmlPullParser.TEXT -> out.append(parser.text)
+                XmlPullParser.START_TAG -> {
+                    out.append('<').append(parser.name)
+                    for (i in 0 until parser.attributeCount) {
+                        out.append(' ').append(parser.getAttributeName(i))
+                            .append("=\"").append(parser.getAttributeValue(i)).append('"')
+                    }
+                    out.append('>')
+                }
+                XmlPullParser.END_TAG -> {
+                    if (parser.depth == depth) return out.toString()
+                    out.append("</").append(parser.name).append('>')
+                }
+            }
+        }
+        return out.toString()
+    }
 
     private fun newParser(xml: String): XmlPullParser {
         val parser = XmlPullParserFactory.newInstance().newPullParser()

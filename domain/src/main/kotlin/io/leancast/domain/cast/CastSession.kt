@@ -27,11 +27,11 @@ fun interface VolumeSink {
  */
 class CastSession(private val port: PlayerPort) {
 
-    interface Listener {
+    fun interface Listener {
         fun onStateChanged(state: TransportState)
     }
 
-    private var listener: Listener? = null
+    private val listeners = java.util.concurrent.CopyOnWriteArrayList<Listener>()
     private var volumeSink: VolumeSink? = null
 
     var state: TransportState = TransportState.NO_MEDIA_PRESENT
@@ -45,8 +45,12 @@ class CastSession(private val port: PlayerPort) {
     var volume: Int = 100
         private set
 
-    fun setListener(l: Listener) {
-        listener = l
+    fun addListener(l: Listener) {
+        listeners += l
+    }
+
+    fun removeListener(l: Listener) {
+        listeners -= l
     }
 
     fun setVolumeSink(sink: VolumeSink) {
@@ -149,6 +153,6 @@ class CastSession(private val port: PlayerPort) {
 
     private fun enter(next: TransportState) {
         state = next
-        listener?.onStateChanged(next)
+        listeners.forEach { it.onStateChanged(next) }
     }
 }

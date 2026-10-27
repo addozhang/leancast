@@ -2,4 +2,19 @@
 <resources>
     <!-- App title: generic, localizable. The receiver friendly name is a user setting. -->
     <string name="app_name">LeanCast</string>
+    <string name="manufacturer">LeanCast</string>
+    <string name="model_name">LeanCast Receiver</string>
+
+    <string name="notif_channel">Cast receiver</string>
+    <string name="notif_title">Receiver running</string>
+    <string name="notif_text">State: %1$s</string>
+
+    <string name="status_name">Name: %1$s</string>
+    <string name="status_endpoint">Endpoint: %1$s</string>
+    <string name="status_state">State: %1$s %2$s</string>
+    <string name="status_service_stopped">STOPPED (service off)</string>
+
+    <string name="setting_autostart">Start on boot</string>
+    <string name="setting_rename">Rename receiver</string>
+    <string name="action_toggle_service">Start / stop receiver</string>
 </resources>
