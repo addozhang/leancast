@@ -31,3 +31,9 @@
 - [x] 6.2 Explicit Hls/Progressive MediaSource routing (DefaultMediaSourceFactory inference missed mid-path "m3u8"); prepare logging with resolved MIME
 - [x] 6.3 Verified on TV: youku HLS (captured live URL) plays via Set-only cast; 12/12 E2E regression green
 - [x] 6.4 Remove request-level diagnostic logging (kept spec'd error-path logs only); 12/12 E2E regression green
+
+## 7. Accelerated seeking
+
+- [x] 7.1 TTD domain SeekStepPolicy (escalating 10/30/60/120/300s ladder by repeat count, capped)
+- [x] 7.2 PlayerActivity: use policy for DPAD L/R repeats + handle MEDIA_FAST_FORWARD/MEDIA_REWIND
+- [ ] 7.3 On-device long-press verification
