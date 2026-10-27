@@ -3,12 +3,17 @@ package io.leancast.app
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import io.leancast.domain.cast.CastSession
+import io.leancast.domain.cast.MediaHttpHeaders
 import io.leancast.domain.cast.PlayerPort
 
 /**
@@ -22,6 +27,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
 
     @Volatile private var cachedPositionMs = 0L
     @Volatile private var cachedDurationMs = 0L
+    @Volatile private var lastUri: String? = null
 
     private val main = Handler(Looper.getMainLooper())
     private var player: ExoPlayer? = null
@@ -39,6 +45,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
     val currentPlayer: Player? get() = player
 
     override fun prepareAndPlay(uri: String) {
+        lastUri = uri
         main.post {
             val p = obtain()
             val mime = when {
@@ -82,24 +89,51 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
     }
 
     private fun obtain(): ExoPlayer =
-        player ?: ExoPlayer.Builder(context).build().also { created ->
-            created.addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_READY) session?.onPlayerPrepared()
-                    if (playbackState == Player.STATE_ENDED) session?.stop()
-                }
-
-                override fun onPlayerError(error: PlaybackException) {
-                    session?.onPlayerError()
-                }
-            })
+        player ?: buildPlayer().also { created ->
             player = created
             cachedPositionMs = 0
             cachedDurationMs = 0
             main.post(poller)
         }
 
+    /**
+     * CN video CDNs frequently filter non-browser user agents and redirect
+     * across protocols; wire both into the HTTP stack (see MediaHttpHeaders).
+     */
+    private fun buildPlayer(): ExoPlayer {
+        val http = DefaultHttpDataSource.Factory()
+            .setUserAgent(MediaHttpHeaders.USER_AGENT)
+            .setDefaultRequestProperties(mapOf("Accept" to "*/*"))
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(CONNECT_TIMEOUT_MS)
+            .setReadTimeoutMs(READ_TIMEOUT_MS)
+        val dataSourceFactory = DefaultDataSource.Factory(context, http)
+        return ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .build()
+            .also { p ->
+                p.addListener(object : Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == Player.STATE_READY) session?.onPlayerPrepared()
+                        if (playbackState == Player.STATE_ENDED) session?.stop()
+                    }
+
+                    override fun onPlayerError(error: PlaybackException) {
+                        Log.e(
+                            TAG,
+                            "playback error ${error.errorCodeName} uri=$lastUri",
+                            error,
+                        )
+                        session?.onPlayerError()
+                    }
+                })
+            }
+    }
+
     companion object {
+        private const val TAG = "LeanCastPlayer"
         private const val POLL_MS = 500L
+        private const val CONNECT_TIMEOUT_MS = 8_000
+        private const val READ_TIMEOUT_MS = 8_000
     }
 }
