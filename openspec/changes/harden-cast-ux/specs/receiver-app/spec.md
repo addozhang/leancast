@@ -23,4 +23,18 @@ The app SHALL support switching the UI language between Simplified Chinese (`zh`
 - **WHEN** the user activates the language switch card on the dashboard
 - **THEN** the persisted language toggles between `zh` and `en` and all UI strings render in the selected language only
 
+## MODIFIED Requirements
+
+### Requirement: Configurable friendly name
+The app SHALL persist a receiver friendly name that defaults to the application name (`@string/app_name`, i.e. `LeanCast`). The name is injected into the UPnP device description `friendlyName` and the launcher UI, and can be customized by the user at any time.
+
+#### Scenario: Default name is LeanCast
+- **WHEN** the app runs for the first time with no custom name saved
+- **THEN** the UPnP description and UI advertise `friendlyName` as `LeanCast`
+
+#### Scenario: Rename takes effect
+- **WHEN** the user changes the friendly name in settings and confirms
+- **THEN** the receiver service restarts and subsequent device description responses carry the new name
+
+
 

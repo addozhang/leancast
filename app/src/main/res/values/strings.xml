@@ -1,51 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Pure English strings -->
+    <!-- Pure English copy -->
     <string name="app_name">LeanCast</string>
-    <string name="app_Tagline">Pure Ad-Free DLNA / UPnP Cast Receiver</string>
+    <string name="app_Tagline">Ad-Free DLNA / UPnP Cast Receiver</string>
     <string name="manufacturer">LeanCast</string>
     <string name="model_name">LeanCast Receiver</string>
 
-    <string name="notif_channel">Cast receiver</string>
-    <string name="notif_title">LeanCast Running</string>
-    <string name="notif_text">State: %1$s</string>
+    <string name="notif_channel">Cast Receiver</string>
+    <string name="notif_title">LeanCast Active</string>
+    <string name="notif_text">Status: %1$s</string>
 
-    <string name="status_name">Name: %1$s</string>
+    <string name="status_name">Device: %1$s</string>
     <string name="status_endpoint">Endpoint: %1$s</string>
-    <string name="status_state">State: %1$s %2$s</string>
-    <string name="status_service_stopped">STOPPED</string>
+    <string name="status_state">Status: %1$s %2$s</string>
+    <string name="status_service_stopped">OFFLINE</string>
     <string name="status_ready">READY</string>
-    <string name="status_playing">CASTING</string>
+    <string name="status_playing">PLAYING</string>
     <string name="status_paused">PAUSED</string>
-    <string name="status_loading">LOADING</string>
+    <string name="status_loading">BUFFERING</string>
 
-    <string name="label_device_name">RECEIVER NAME</string>
-    <string name="label_now_playing">NOW CASTING</string>
-    <string name="label_idle_hint">Waiting for cast from phone video apps…</string>
-    <string name="pill_codec">4K HW Decode · HLS / MP4</string>
+    <string name="label_device_name">DEVICE NAME</string>
+    <string name="label_now_playing">CURRENT SESSION</string>
+    <string name="label_idle_hint">Ready to receive casts from your phone…</string>
+    <string name="pill_codec">4K Hardware Decode · HLS / MP4</string>
 
-    <string name="guide_title">HOW TO CAST</string>
-    <string name="guide_step_1">1. Connect your phone &amp; TV to the same Wi-Fi network</string>
-    <string name="guide_step_2">2. Tap the [TV] cast icon in your video app</string>
-    <string name="guide_step_3">3. Select "%1$s" to stream ad-free in 4K</string>
+    <string name="guide_title">QUICK START</string>
+    <string name="guide_step_1">1. Connect your phone and TV to the same Wi-Fi</string>
+    <string name="guide_step_2">2. Tap the [TV] cast icon inside any video app</string>
+    <string name="guide_step_3">3. Select "%1$s" to start streaming immediately</string>
 
-    <string name="section_controls">SETTINGS &amp; CONTROLS</string>
-    <string name="setting_rename">Rename Receiver</string>
-    <string name="setting_rename_desc">Change name shown in phone cast list</string>
-    <string name="setting_autostart">Start on Boot</string>
-    <string name="setting_autostart_on">Enabled · Auto-start receiver in background</string>
-    <string name="setting_autostart_off">Disabled · Start only when opened</string>
-    <string name="action_toggle_service">Receiver Service</string>
-    <string name="action_service_running">Running · Press OK to stop service</string>
-    <string name="action_service_stopped">Stopped · Press OK to start service</string>
+    <string name="section_controls">PREFERENCES</string>
+    <string name="setting_rename">Device Name</string>
+    <string name="setting_rename_desc">Customize how this TV appears in cast lists</string>
+    <string name="setting_autostart">Launch at Startup</string>
+    <string name="setting_autostart_on">Start automatically when TV powers on</string>
+    <string name="setting_autostart_off">Start only when LeanCast is opened</string>
+    <string name="action_toggle_service">Cast Service</string>
+    <string name="action_service_running">Listening on LAN · Press OK to stop</string>
+    <string name="action_service_stopped">Service stopped · Press OK to start</string>
     <string name="setting_language">Language</string>
-    <string name="setting_language_desc">Current: English · Press OK to switch to 中文</string>
+    <string name="setting_language_desc">English · Press OK to switch to 简体中文</string>
     <string name="setting_language_pill">EN</string>
-    <string name="action_resume_player">Return to Player</string>
-    <string name="action_resume_player_desc">Press OK to return to fullscreen video</string>
+    <string name="action_resume_player">Now Playing</string>
+    <string name="action_resume_player_desc">Return to fullscreen video playback</string>
+
+    <string name="pill_live">PLAYING</string>
+    <string name="pill_edit">RENAME</string>
+    <string name="pill_on">ON</string>
+    <string name="pill_off">OFF</string>
+    <string name="pill_active">ONLINE</string>
+    <string name="pill_stopped">STOPPED</string>
 
     <string name="osd_paused">⏸  Paused</string>
     <string name="osd_playing">▶  Playing</string>
     <string name="osd_loading">⏳  Buffering…</string>
-    <string name="osd_legend">OK Pause/Play    ·    ◀ ▶ Seek (Hold to Accelerate)    ·    Back Stop</string>
+    <string name="osd_legend">OK Play / Pause    ·    ◀ ▶ Seek (Hold to Fast-Forward)    ·    Back Exit</string>
 </resources>

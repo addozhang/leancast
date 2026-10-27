@@ -287,7 +287,7 @@ class MainActivity : AppCompatActivity() {
         val resumeRefs = makeActionCard(
             title = getString(R.string.action_resume_player),
             subtitle = getString(R.string.action_resume_player_desc),
-            pillText = "LIVE",
+            pillText = getString(R.string.pill_live),
             accentPill = true,
             onClick = {
                 startActivity(Intent(this, PlayerActivity::class.java))
@@ -303,7 +303,7 @@ class MainActivity : AppCompatActivity() {
         val renameRefs = makeActionCard(
             title = getString(R.string.setting_rename),
             subtitle = getString(R.string.setting_rename_desc),
-            pillText = "EDIT",
+            pillText = getString(R.string.pill_edit),
             accentPill = false,
             onClick = { showRenameDialog() },
         )
@@ -514,7 +514,7 @@ class MainActivity : AppCompatActivity() {
         // Autostart card state
         val auto = settings.autostart
         autostartStatus.text = if (auto) getString(R.string.setting_autostart_on) else getString(R.string.setting_autostart_off)
-        autostartPill.text = if (auto) "ON" else "OFF"
+        autostartPill.text = if (auto) getString(R.string.pill_on) else getString(R.string.pill_off)
         autostartPill.setTextColor(if (auto) Color.parseColor("#052E16") else Color.parseColor("#94A3B8"))
         autostartPill.background = roundedRect(
             fillColor = if (auto) Color.parseColor("#34D399") else Color.parseColor("#1E293B"),
@@ -526,7 +526,7 @@ class MainActivity : AppCompatActivity() {
         // Service card state
         val running = session != null
         serviceStatus.text = if (running) getString(R.string.action_service_running) else getString(R.string.action_service_stopped)
-        servicePill.text = if (running) "ACTIVE" else "OFF"
+        servicePill.text = if (running) getString(R.string.pill_active) else getString(R.string.pill_stopped)
         servicePill.setTextColor(if (running) Color.parseColor("#052E16") else Color.parseColor("#FCA5A5"))
         servicePill.background = roundedRect(
             fillColor = if (running) Color.parseColor("#34D399") else Color.parseColor("#7F1D1D"),

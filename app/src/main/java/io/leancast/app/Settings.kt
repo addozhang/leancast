@@ -2,14 +2,13 @@ package io.leancast.app
 
 import android.content.Context
 import android.content.res.Configuration
-import android.os.Build
 import java.util.Locale
 import java.util.UUID
 
 /** Persisted receiver identity and toggles. */
-class Settings(context: Context) {
+class Settings(private val appContext: Context) {
 
-    private val prefs = context.getSharedPreferences("receiver", Context.MODE_PRIVATE)
+    private val prefs = appContext.getSharedPreferences("receiver", Context.MODE_PRIVATE)
 
     /** UDN value with `uuid:` prefix, generated once and stable across restarts. */
     fun uuid(): String {
@@ -21,12 +20,15 @@ class Settings(context: Context) {
         return value
     }
 
-    /** Friendly name shown in cast lists; defaults to the device model, never a product literal. */
-    fun friendlyName(): String =
-        prefs.getString(KEY_NAME, null) ?: Build.MODEL
+    /** Friendly name shown in cast lists; defaults to `@string/app_name` ("LeanCast"). */
+    fun friendlyName(): String {
+        val defaultName = appContext.getString(R.string.app_name)
+        return prefs.getString(KEY_NAME, null)?.takeIf { it.isNotBlank() } ?: defaultName
+    }
 
     fun setFriendlyName(name: String) {
-        prefs.edit().putString(KEY_NAME, name.trim().ifEmpty { Build.MODEL }).apply()
+        val defaultName = appContext.getString(R.string.app_name)
+        prefs.edit().putString(KEY_NAME, name.trim().ifEmpty { defaultName }).apply()
     }
 
     var autostart: Boolean

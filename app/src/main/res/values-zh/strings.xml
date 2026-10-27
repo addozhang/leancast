@@ -1,51 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Pure Simplified Chinese strings -->
+    <!-- Pure Simplified Chinese copy -->
     <string name="app_name">LeanCast</string>
-    <string name="app_Tagline">极简无广告 DLNA / UPnP 投屏接收器</string>
+    <string name="app_Tagline">纯净无广告 · 4K 硬件解码投屏接收端</string>
     <string name="manufacturer">LeanCast</string>
     <string name="model_name">LeanCast Receiver</string>
 
     <string name="notif_channel">投屏接收服务</string>
     <string name="notif_title">LeanCast 正在运行</string>
-    <string name="notif_text">当前状态: %1$s</string>
+    <string name="notif_text">状态: %1$s</string>
 
     <string name="status_name">设备名称: %1$s</string>
-    <string name="status_endpoint">服务地址: %1$s</string>
+    <string name="status_endpoint">监听地址: %1$s</string>
     <string name="status_state">状态: %1$s %2$s</string>
-    <string name="status_service_stopped">已停止</string>
-    <string name="status_ready">等待投屏</string>
-    <string name="status_playing">正在投屏</string>
+    <string name="status_service_stopped">服务已停止</string>
+    <string name="status_ready">就绪 · 等待投屏</string>
+    <string name="status_playing">正在播放</string>
     <string name="status_paused">已暂停</string>
     <string name="status_loading">正在缓冲</string>
 
-    <string name="label_device_name">本机投屏名称</string>
-    <string name="label_now_playing">当前播放</string>
-    <string name="label_idle_hint">等待手机视频 App 发起投屏…</string>
+    <string name="label_device_name">投屏设备名称</string>
+    <string name="label_now_playing">当前投屏状态</string>
+    <string name="label_idle_hint">正在局域网待命，随时接收手机视频投屏…</string>
     <string name="pill_codec">4K 硬件解码 · HLS / MP4</string>
 
-    <string name="guide_title">投屏三步曲</string>
-    <string name="guide_step_1">1. 将手机与电视连接至同一个家庭 Wi-Fi</string>
-    <string name="guide_step_2">2. 打开 B站 / 腾讯 / 优酷 / 央视频 / 夸克，点击右上角 [TV]</string>
-    <string name="guide_step_3">3. 在列表中选择「%1$s」即可无广告播放</string>
+    <string name="guide_title">快速投屏指南</string>
+    <string name="guide_step_1">1. 确保手机与电视连接在同一个局域网 Wi-Fi</string>
+    <string name="guide_step_2">2. 在 B站、腾讯、优酷、央视频、夸克中点击右上角 [TV]</string>
+    <string name="guide_step_3">3. 选择「%1$s」即可直连播放，全程零广告</string>
 
-    <string name="section_controls">快捷设置与控制</string>
-    <string name="setting_rename">修改设备名称</string>
-    <string name="setting_rename_desc">更改手机投屏列表中显示的电视名称</string>
-    <string name="setting_autostart">开机自动启动</string>
-    <string name="setting_autostart_on">已开启 · 电视开机后后台静默待命</string>
-    <string name="setting_autostart_off">已关闭 · 仅在打开应用时启动</string>
-    <string name="action_toggle_service">投屏接收服务</string>
-    <string name="action_service_running">运行中 · 按确定键停止服务</string>
-    <string name="action_service_stopped">已停止 · 按确定键启动服务</string>
+    <string name="section_controls">偏好设置与控制</string>
+    <string name="setting_rename">设备名称</string>
+    <string name="setting_rename_desc">修改手机端投屏列表中显示的电视名称</string>
+    <string name="setting_autostart">开机自启</string>
+    <string name="setting_autostart_on">电视开机后自动在后台静默开启投屏服务</string>
+    <string name="setting_autostart_off">仅在手动打开 LeanCast 时开启投屏服务</string>
+    <string name="action_toggle_service">投屏服务</string>
+    <string name="action_service_running">正在局域网监听 · 按确定键停止</string>
+    <string name="action_service_stopped">服务已暂停 · 按确定键重新开启</string>
     <string name="setting_language">界面语言</string>
-    <string name="setting_language_desc">当前：简体中文 · 按确定键切换为 English</string>
+    <string name="setting_language_desc">简体中文 · 按确定键切换为 English</string>
     <string name="setting_language_pill">中文</string>
-    <string name="action_resume_player">返回播放画面</string>
-    <string name="action_resume_player_desc">按确定键回到全屏视频</string>
+    <string name="action_resume_player">返回播放</string>
+    <string name="action_resume_player_desc">按确定键回到正在播放的全屏视频</string>
+
+    <string name="pill_live">播放中</string>
+    <string name="pill_edit">修改</string>
+    <string name="pill_on">已开启</string>
+    <string name="pill_off">已关闭</string>
+    <string name="pill_active">运行中</string>
+    <string name="pill_stopped">已停止</string>
 
     <string name="osd_paused">⏸  已暂停</string>
     <string name="osd_playing">▶  继续播放</string>
     <string name="osd_loading">⏳  正在缓冲…</string>
-    <string name="osd_legend">OK 暂停/播放    ·    ◀ ▶ 快退/快进（长按阶梯加速）    ·    返回键 退出投屏</string>
+    <string name="osd_legend">确定键 暂停/播放    ·    左右键 快退/快进（长按加速）    ·    返回键 退出播放</string>
 </resources>
