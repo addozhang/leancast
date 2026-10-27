@@ -162,7 +162,7 @@ class ReceiverService : Service() {
             Notification.Builder(this)
         }
         return builder
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_notify)
             .setContentTitle(getString(R.string.notif_title))
             .setContentText(getString(R.string.notif_text, state.name))
             .setContentIntent(pi)

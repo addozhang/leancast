@@ -44,13 +44,52 @@ adb shell am start -n io.leancast/io.leancast.app.MainActivity
 ```
 
 Launch the app once to start the receiver service; it then appears in every
-DLNA sender's device list under the TV's model name (rename it in the app).
+DLNA sender's device list under the receiver name (rename it in the app).
 Optional: enable **Start on boot** in the app.
+
+## Releases & CI
+
+Two GitHub Actions workflows ship with the repo:
+
+- **CI** (`.github/workflows/ci.yml`) — runs domain unit tests + debug build on
+  every push to `main` and every PR; uploads the debug APK as an artifact.
+- **Release** (`.github/workflows/release.yml`) — triggered by pushing a `v*`
+  tag (or manually via *workflow_dispatch*). Builds the release APK, runs the
+  unit tests, creates a GitHub Release with auto-generated notes, and attaches
+  `LeanCast-<version>.apk`.
+
+To publish a release:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+### Release signing
+
+By default the release APK falls back to the debug keystore (fine for personal
+sideloading). For a stable release signature across builds, add these
+repository secrets (**Settings → Secrets and variables → Actions**):
+
+| Secret | Value |
+| :--- | :--- |
+| `KEYSTORE_BASE64` | `base64 -i release.keystore \| pbcopy` (or `base64 -w0` on Linux) |
+| `KEYSTORE_PASSWORD` | Keystore password |
+| `KEY_ALIAS` | Key alias |
+| `KEY_PASSWORD` | Key password |
+
+The workflow decodes the keystore to `ci-release.keystore` (git-ignored) and
+signs with it. Generate a keystore once with:
+
+```bash
+keytool -genkeypair -v -keystore release.keystore -alias leancast \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
 
 ## Project layout
 
 ```
-domain/          Pure-Kotlin protocol core (JVM-unit-tested, 72 tests)
+domain/          Pure-Kotlin protocol core (JVM-unit-tested, 90 tests)
   ssdp/          M-SEARCH parsing, target matching, USN, alive/byebye, MX delays
   upnp/          Device description + SCPDs, SOAP parser (prefix-tolerant DIDL),
                  response envelopes & faults, H:MM:SS time math, SOAP router

@@ -11,3 +11,5 @@ local.properties
 app/build
 domain/build
 *.apk.idsig
+ci-release.keystore
+*.jks
