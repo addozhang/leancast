@@ -68,13 +68,14 @@ class CastSession(private val port: PlayerPort) {
         enter(TransportState.NO_MEDIA_PRESENT)
     }
 
-    /** Play: resumes when paused; otherwise starts the stored URI via TRANSITIONING. */
+    /** Play: resumes when paused; starts stored media otherwise; idempotent. */
     fun play() {
         when (state) {
             TransportState.PAUSED_PLAYBACK -> {
                 port.play()
                 enter(TransportState.PLAYING)
             }
+            TransportState.PLAYING, TransportState.TRANSITIONING -> Unit
             else -> {
                 val uri = currentUri ?: return
                 port.prepareAndPlay(uri)

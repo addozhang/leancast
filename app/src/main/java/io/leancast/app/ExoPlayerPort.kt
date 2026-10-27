@@ -49,7 +49,19 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
         main.post {
             val p = obtain()
             val mime = MimeInference.guessMimeType(uri)
-            p.setMediaItem(MediaItem.Builder().setUri(uri).setMimeType(mime).build())
+            Log.i(TAG, "prepare mime=$mime uri=$uri")
+            val item = MediaItem.Builder().setUri(uri).setMimeType(mime).build()
+            // Route explicitly: DefaultMediaSourceFactory's inference misses
+            // CN CDNs whose manifests hide "m3u8" mid-path (youku et al.).
+            val source = when (mime) {
+                MimeInference.HLS ->
+                    androidx.media3.exoplayer.hls.HlsMediaSource
+                        .Factory(dataSources()).createMediaSource(item)
+                else ->
+                    androidx.media3.exoplayer.source.ProgressiveMediaSource
+                        .Factory(dataSources()).createMediaSource(item)
+            }
+            p.setMediaSource(source)
             p.prepare()
             p.playWhenReady = true
         }
@@ -94,16 +106,19 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
      * CN video CDNs frequently filter non-browser user agents and redirect
      * across protocols; wire both into the HTTP stack (see MediaHttpHeaders).
      */
-    private fun buildPlayer(): ExoPlayer {
+    private fun dataSources(): DefaultDataSource.Factory {
         val http = DefaultHttpDataSource.Factory()
             .setUserAgent(MediaHttpHeaders.USER_AGENT)
             .setDefaultRequestProperties(mapOf("Accept" to "*/*"))
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(CONNECT_TIMEOUT_MS)
             .setReadTimeoutMs(READ_TIMEOUT_MS)
-        val dataSourceFactory = DefaultDataSource.Factory(context, http)
+        return DefaultDataSource.Factory(context, http)
+    }
+
+    private fun buildPlayer(): ExoPlayer {
         return ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSources()))
             .build()
             .also { p ->
                 p.addListener(object : Player.Listener {

@@ -29,6 +29,9 @@ class SoapRouter(private val session: CastSession) {
     private fun routeAvt(action: String, args: Map<String, String>): Result = when (action) {
         "SetAVTransportURI" -> {
             session.setUri(args["CurrentURI"], args["CurrentURIMetaData"])
+            // Many CN senders (e.g. bilibili) never send Play: they set the URI
+            // and poll state. Auto-start so they see TRANSITIONING/PLAYING.
+            if (session.currentUri != null) session.play()
             ok(action, UpnpService.AVT)
         }
         "Play" -> {
