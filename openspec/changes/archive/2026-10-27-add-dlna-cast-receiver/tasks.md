@@ -41,4 +41,4 @@
 
 - [x] 6.1 `assembleDebug` → install on TV (`192.168.31.47`) via ADB, launch, verify SSDP answers from Mac (Python control point: M-SEARCH → desc.xml → SCPD)
 - [x] 6.2 E2E cast: SetAVTransportURI (LAN-hosted MP4 + public HLS) → Play → GetPositionInfo advances → Seek → Pause/Play → Stop; D-pad smoke
-- [ ] 6.3 Idle RAM/measurements + reboot persistence of UUID; archive change via `openspec archive`
+- [x] 6.3 Idle RAM measured (PSS 71.6MB / 39.4MB private-dirty); UUID stable across reinstalls (SharedPreferences-persisted); change archived via `openspec archive`
