@@ -16,12 +16,12 @@
 
 ## 3. Domain: UPnP renderer (TDD)
 
-- [ ] 3.1 Write failing tests: device description XML (friendlyName injectable, UDN stable, 3 services with resolvable URLs)
-- [ ] 3.2 Implement `DeviceDescription` renderer + SCPD XMLs for AVTransport/RenderingControl/ConnectionManager
-- [ ] 3.3 Write failing tests: SOAP request parse (header + body fallback), argument extraction, DIDL `dc:title` extraction
-- [ ] 3.4 Implement `SoapParser` (XmlPullParser) + `DidlParser`
-- [ ] 3.5 Write failing tests: response envelopes for all actions incl. 401/402 fault bodies, `H:MM:SS` time conversion both ways
-- [ ] 3.6 Implement `SoapResponses` (Play/Pause/Stop/Seek/GetPosition/GetTransport/GetMediaInfo/Volume/Mute/ProtocolInfo) + `UpnpTime`
+- [x] 3.1 Write failing tests: device description XML (friendlyName injectable, UDN stable, 3 services with resolvable URLs)
+- [x] 3.2 Implement `DeviceDescription` renderer + SCPD XMLs for AVTransport/RenderingControl/ConnectionManager
+- [x] 3.3 Write failing tests: SOAP request parse (header + body fallback), argument extraction, DIDL `dc:title` extraction
+- [x] 3.4 Implement `SoapParser` (XmlPullParser) + `DidlParser`
+- [x] 3.5 Write failing tests: response envelopes for all actions incl. 401/402 fault bodies, `H:MM:SS` time conversion both ways
+- [x] 3.6 Implement `SoapResponses` (Play/Pause/Stop/Seek/GetPosition/GetTransport/GetMediaInfo/Volume/Mute/ProtocolInfo) + `UpnpTime`
 
 ## 4. Domain: transport session (TDD)
 

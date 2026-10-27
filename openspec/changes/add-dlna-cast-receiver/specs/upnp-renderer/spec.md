@@ -58,11 +58,11 @@ The renderer SHALL implement `Play` (start/resume from stored URI; playback begi
 - **THEN** playback halts, position reporting resets to zero, and state becomes `STOPPED`
 
 ### Requirement: Handle Seek
-`Seek(InstanceID=0, Unit, Target)` SHALL support `Unit=REL_TIME` with `Target` formatted `H:MM:SS` or `H:MM:SS.fraction` (fraction truncated) and also accept `ABS_TIME`/`TRACK_NR`-style values it cannot honor by ignoring them gracefully. On success the playback position moves to the requested second.
+`Seek(InstanceID=0, Unit, Target)` SHALL support `Unit=REL_TIME` with `Target` formatted `H:MM:SS` or `H:MM:SS.fraction` (fraction interpreted as fractional seconds) and also accept `ABS_TIME`/`TRACK_NR`-style values it cannot honor by ignoring them gracefully. On success the playback position moves to the requested time.
 
 #### Scenario: Seek to a timestamp
 - **WHEN** `Seek` is called with `Unit="REL_TIME"`, `Target="0:01:30.500"`
-- **THEN** the requested position is 90 seconds and a success response is returned
+- **THEN** the requested position is 90,500 ms and a success response is returned
 
 #### Scenario: Unsupported unit ignored
 - **WHEN** `Seek` is called with `Unit="TRACK_NR"`
