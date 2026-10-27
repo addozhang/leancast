@@ -55,6 +55,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(Settings.wrapLocale(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = Settings(this)
@@ -194,7 +198,7 @@ class MainActivity : AppCompatActivity() {
         }
         pillEndpoint = makeInfoPill("HTTP  -:-")
         val pillProto = makeInfoPill("DLNA / UPnP AV 1.0")
-        val pillCodec = makeInfoPill("4K HW Decode · HLS / MP4")
+        val pillCodec = makeInfoPill(getString(R.string.pill_codec))
         pillsRow.addView(pillEndpoint, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             rightMargin = dp(10)
         })
@@ -339,7 +343,22 @@ class MainActivity : AppCompatActivity() {
         )
         serviceStatus = svcRefs.subtitle
         servicePill = svcRefs.pill
-        col.addView(svcRefs.card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        col.addView(svcRefs.card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(12)
+        })
+
+        // Card 4: Language Switch (中文 / EN)
+        val langRefs = makeActionCard(
+            title = getString(R.string.setting_language),
+            subtitle = getString(R.string.setting_language_desc),
+            pillText = getString(R.string.setting_language_pill),
+            accentPill = true,
+            onClick = {
+                settings.toggleLanguage()
+                recreate()
+            },
+        )
+        col.addView(langRefs.card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         // Request initial D-pad focus on Rename card
         renameRefs.card.post { renameRefs.card.requestFocus() }

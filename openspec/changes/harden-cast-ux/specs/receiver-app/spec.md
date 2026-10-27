@@ -16,3 +16,11 @@ The launcher activity SHALL present a 10-foot Android TV layout with overscan-sa
 - **WHEN** the user navigates to an action card on the right column using the TV remote D-pad
 - **THEN** the focused card renders a high-contrast accent border and scales up relative to unfocused cards
 
+### Requirement: Switchable UI language (Chinese / English)
+The app SHALL support switching the UI language between Simplified Chinese (`zh`) and English (`en`) via a focusable action card on the dashboard. Each language SHALL display pure, single-language strings (without mixed bilingual concatenation), persisted across restarts.
+
+#### Scenario: Toggle between Chinese and English
+- **WHEN** the user activates the language switch card on the dashboard
+- **THEN** the persisted language toggles between `zh` and `en` and all UI strings render in the selected language only
+
+

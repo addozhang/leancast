@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- App title: generic, localizable. The receiver friendly name is a user setting. -->
+    <!-- Pure English strings -->
     <string name="app_name">LeanCast</string>
-    <string name="app_Tagline">Pure DLNA / UPnP Cast Receiver · 极简无广告投屏接收器</string>
+    <string name="app_Tagline">Pure Ad-Free DLNA / UPnP Cast Receiver</string>
     <string name="manufacturer">LeanCast</string>
     <string name="model_name">LeanCast Receiver</string>
 
@@ -13,35 +13,39 @@
     <string name="status_name">Name: %1$s</string>
     <string name="status_endpoint">Endpoint: %1$s</string>
     <string name="status_state">State: %1$s %2$s</string>
-    <string name="status_service_stopped">STOPPED · 服务已停止</string>
-    <string name="status_ready">READY · 等待投屏</string>
-    <string name="status_playing">CASTING · 正在投屏</string>
-    <string name="status_paused">PAUSED · 已暂停</string>
-    <string name="status_loading">LOADING · 正在缓冲</string>
+    <string name="status_service_stopped">STOPPED</string>
+    <string name="status_ready">READY</string>
+    <string name="status_playing">CASTING</string>
+    <string name="status_paused">PAUSED</string>
+    <string name="status_loading">LOADING</string>
 
-    <string name="label_device_name">RECEIVER NAME · 本机投屏名称</string>
-    <string name="label_now_playing">NOW CASTING · 当前播放</string>
-    <string name="label_idle_hint">Waiting for cast from phone video apps · 等待手机视频 App 发起投屏</string>
+    <string name="label_device_name">RECEIVER NAME</string>
+    <string name="label_now_playing">NOW CASTING</string>
+    <string name="label_idle_hint">Waiting for cast from phone video apps…</string>
+    <string name="pill_codec">4K HW Decode · HLS / MP4</string>
 
-    <string name="guide_title">HOW TO CAST · 投屏三步曲</string>
-    <string name="guide_step_1">1. Connect phone &amp; TV to the same Wi-Fi · 手机与电视连接同一局域网</string>
-    <string name="guide_step_2">2. Tap [TV] in Bilibili / Tencent / Youku / Quark · 打开视频 App 点击右上角 TV 投屏</string>
-    <string name="guide_step_3">3. Select "%1$s" to play ad-free in 4K · 选择「%1$s」即可无广告硬解播放</string>
+    <string name="guide_title">HOW TO CAST</string>
+    <string name="guide_step_1">1. Connect your phone &amp; TV to the same Wi-Fi network</string>
+    <string name="guide_step_2">2. Tap the [TV] cast icon in your video app</string>
+    <string name="guide_step_3">3. Select "%1$s" to stream ad-free in 4K</string>
 
-    <string name="section_controls">SETTINGS &amp; CONTROLS · 遥控器设置</string>
-    <string name="setting_rename">Rename Receiver · 修改设备名称</string>
-    <string name="setting_rename_desc">Change name shown in phone cast list · 更改手机投屏列表中显示的名称</string>
-    <string name="setting_autostart">Start on Boot · 开机自动启动</string>
-    <string name="setting_autostart_on">Enabled · 开机静默运行投屏服务</string>
-    <string name="setting_autostart_off">Disabled · 仅打开应用时运行</string>
-    <string name="action_toggle_service">Receiver Service · 投屏后台服务</string>
-    <string name="action_service_running">Running · 点击停止服务</string>
-    <string name="action_service_stopped">Stopped · 点击启动服务</string>
-    <string name="action_resume_player">Return to Player · 返回正在播放的画面</string>
-    <string name="action_resume_player_desc">Press OK to open fullscreen video · 按确定键回到全屏视频</string>
+    <string name="section_controls">SETTINGS &amp; CONTROLS</string>
+    <string name="setting_rename">Rename Receiver</string>
+    <string name="setting_rename_desc">Change name shown in phone cast list</string>
+    <string name="setting_autostart">Start on Boot</string>
+    <string name="setting_autostart_on">Enabled · Auto-start receiver in background</string>
+    <string name="setting_autostart_off">Disabled · Start only when opened</string>
+    <string name="action_toggle_service">Receiver Service</string>
+    <string name="action_service_running">Running · Press OK to stop service</string>
+    <string name="action_service_stopped">Stopped · Press OK to start service</string>
+    <string name="setting_language">Language</string>
+    <string name="setting_language_desc">Current: English · Press OK to switch to 中文</string>
+    <string name="setting_language_pill">EN</string>
+    <string name="action_resume_player">Return to Player</string>
+    <string name="action_resume_player_desc">Press OK to return to fullscreen video</string>
 
-    <string name="osd_paused">⏸  Paused · 已暂停</string>
-    <string name="osd_playing">▶  Playing · 继续播放</string>
-    <string name="osd_loading">⏳  Buffering · 正在加载…</string>
-    <string name="osd_legend">OK 暂停/播放    ·    ◀ ▶ 快退/快进（长按阶梯加速）    ·    返回键 退出投屏</string>
+    <string name="osd_paused">⏸  Paused</string>
+    <string name="osd_playing">▶  Playing</string>
+    <string name="osd_loading">⏳  Buffering…</string>
+    <string name="osd_legend">OK Pause/Play    ·    ◀ ▶ Seek (Hold to Accelerate)    ·    Back Stop</string>
 </resources>

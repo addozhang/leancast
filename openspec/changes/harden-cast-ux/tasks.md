@@ -44,3 +44,4 @@
 - [x] 8.2 Implement Plan A two-column 10-foot TV dashboard in `MainActivity` with D-pad focus highlight + scale animation
 - [x] 8.3 Replace default Media3 touch controller in `PlayerActivity` with custom TV OSD (top title bar, center glassmorphic state/seek pill, bottom progress bar + remote legend)
 - [x] 8.4 Verify on Fire TV and capture screenshots of new MainActivity & PlayerActivity OSD
+- [x] 8.5 Separate pure `values/strings.xml` (English) and `values-zh/strings.xml` (Simplified Chinese) and add a language toggle card (`中文` / `EN`) persisted in `Settings`
