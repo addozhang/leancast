@@ -25,9 +25,9 @@
 
 ## 4. Domain: transport session (TDD)
 
-- [ ] 4.1 Write failing tests: state machine transitions incl. illegal-command tolerance and error→STOPPED recovery
-- [ ] 4.2 Implement `CastSession` with `PlayerPort` interface (prepare/play/pause/seek/stop/release, position/duration queries) — fake in tests
-- [ ] 4.3 Write failing tests: volume clamp 0..100 and 0..100→device-stream mapping; position advance during play
+- [x] 4.1 Write failing tests: state machine transitions incl. illegal-command tolerance and error→STOPPED recovery
+- [x] 4.2 Implement `CastSession` with `PlayerPort` interface (prepare/play/pause/seek/stop/release, position/duration queries) — fake in tests
+- [x] 4.3 Write failing tests: volume clamp 0..100 and 0..100→device-stream mapping; position advance during play
 
 ## 5. Android adapters
 

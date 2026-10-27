@@ -43,7 +43,7 @@ The layer SHALL map volume `0..100` to the device `STREAM_MUSIC` percentage and 
 
 #### Scenario: Volume mapping
 - **WHEN** volume 37 of 100 is applied on a device stream whose max is 15
-- **THEN** the device receives volume 5 (round(37*15/100)) and queried volume reports 37
+- **THEN** the device receives volume 6 (round(37*15/100) = round(5.55)) and queried volume reports 37
 
 ### Requirement: TV remote key handling
 While the player surface is foreground, `DPAD_CENTER` SHALL toggle pause/resume, `DPAD_LEFT`/`DPAD_RIGHT` SHALL seek −10 s/+10 s (bounded by media), and `BACK` SHALL stop playback and leave the player screen.
