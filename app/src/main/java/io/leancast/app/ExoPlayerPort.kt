@@ -5,7 +5,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
@@ -15,6 +14,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import io.leancast.domain.cast.CastSession
 import io.leancast.domain.cast.MediaHttpHeaders
 import io.leancast.domain.cast.PlayerPort
+import io.leancast.domain.upnp.MimeInference
 
 /**
  * [PlayerPort] backed by ExoPlayer. All player access is marshalled to the main
@@ -48,13 +48,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
         lastUri = uri
         main.post {
             val p = obtain()
-            val mime = when {
-                uri.substringBefore('?').endsWith(".m3u8", ignoreCase = true) ->
-                    MimeTypes.APPLICATION_M3U8
-                uri.substringBefore('?').endsWith(".mpd", ignoreCase = true) ->
-                    MimeTypes.APPLICATION_MPD
-                else -> null
-            }
+            val mime = MimeInference.guessMimeType(uri)
             p.setMediaItem(MediaItem.Builder().setUri(uri).setMimeType(mime).build())
             p.prepare()
             p.playWhenReady = true

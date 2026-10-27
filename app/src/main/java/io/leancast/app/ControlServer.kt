@@ -25,6 +25,10 @@ class ControlServer(
 
     override fun serve(session: IHTTPSession): Response {
         val path = session.uri.trimEnd('/')
+        android.util.Log.i(
+            TAG,
+            "req ${session.method} $path from ${session.remoteIpAddress ?: "?"}",
+        )
         return when {
             path == "/desc.xml" -> xml(deviceDoc.deviceXml())
 
@@ -55,6 +59,7 @@ class ControlServer(
         }
         val body = readBody(session)
         val soapAction = session.headers["soapaction"] ?: session.headers["SOAPACTION"]
+        android.util.Log.i(TAG, "control action=$soapAction len=${body.length}")
         val result = router.route(SoapParser.parse(soapAction, body))
         val status = Response.Status.lookup(result.httpStatus) ?: Response.Status.OK
         return newFixedLengthResponse(status, "text/xml; charset=\"utf-8\"", result.body)
@@ -91,6 +96,8 @@ class ControlServer(
         newFixedLengthResponse(Response.Status.OK, "text/xml; charset=\"utf-8\"", text)
 
     companion object {
+        private const val TAG = "LeanCastServer"
+
         /** Starts on [preferredPort], falling back to an ephemeral port. */
         fun startWithFallback(
             preferredPort: Int,
