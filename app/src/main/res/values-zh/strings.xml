@@ -31,7 +31,7 @@
 
     <string name="guide_title">快速投屏指南</string>
     <string name="guide_step_1">1. 确保手机与电视连接在同一个局域网 Wi-Fi</string>
-    <string name="guide_step_2">2. 在 B站、腾讯、优酷、央视频、夸克中点击右上角 [TV]</string>
+    <string name="guide_step_2">2. 在任意视频 App 中点击右上角的 [TV] 投屏图标</string>
     <string name="guide_step_3">3. 选择「%1$s」即可直连播放，全程零广告</string>
 
     <string name="section_controls">偏好设置与控制</string>

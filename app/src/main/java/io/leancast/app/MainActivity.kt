@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
         }
         val iconView = ImageView(this).apply {
-            setImageResource(R.mipmap.ic_launcher)
+            setImageResource(R.drawable.ic_brand)
         }
         headerRow.addView(iconView, LinearLayout.LayoutParams(dp(44), dp(44)).apply {
             rightMargin = dp(14)
@@ -193,31 +193,32 @@ class MainActivity : AppCompatActivity() {
             topMargin = dp(2)
         })
 
-        // Endpoint + Protocol + Decoder 3-Cell Specs Grid
-        val specsRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        // Endpoint / Protocol / Decoder spec sheet (full-width rows; never truncated)
+        val specList = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
         }
-        val epCell = makeSpecCell(getString(R.string.meta_label_endpoint), "-:-", monospace = true)
-        pillEndpoint = epCell.second
-        val protoCell = makeSpecCell(
+        val epRow = makeSpecRow(getString(R.string.meta_label_endpoint), "-:-", monospace = true)
+        pillEndpoint = epRow.second
+        val protoRow = makeSpecRow(
             getString(R.string.meta_label_protocol),
             getString(R.string.meta_value_protocol),
             monospace = false,
         )
-        val codecCell = makeSpecCell(
+        val codecRow = makeSpecRow(
             getString(R.string.meta_label_decoder),
             getString(R.string.meta_value_decoder),
             monospace = false,
         )
-        specsRow.addView(epCell.first, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.15f).apply {
-            rightMargin = dp(10)
-        })
-        specsRow.addView(protoCell.first, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.95f).apply {
-            rightMargin = dp(10)
-        })
-        specsRow.addView(codecCell.first, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.05f))
-        card.addView(specsRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+        specList.addView(epRow.first, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = dp(6) })
+        specList.addView(protoRow.first, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply { bottomMargin = dp(6) })
+        specList.addView(codecRow.first, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ))
+        card.addView(specList, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             topMargin = dp(14)
         })
 
@@ -465,14 +466,16 @@ class MainActivity : AppCompatActivity() {
         return ActionCardRefs(row, subView, pill)
     }
 
-    private fun makeSpecCell(
+    /** One spec-sheet row: fixed label column + flexible value; never truncates our strings. */
+    private fun makeSpecRow(
         label: String,
         initialValue: String,
         monospace: Boolean,
     ): Pair<LinearLayout, TextView> {
-        val box = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(10), dp(12), dp(10))
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(9), dp(14), dp(9))
             background = roundedRect(
                 fillColor = Color.parseColor("#0B1120"),
                 strokeColor = Color.parseColor("#1E293B"),
@@ -487,8 +490,9 @@ class MainActivity : AppCompatActivity() {
             typeface = Typeface.DEFAULT_BOLD
             letterSpacing = 0.06f
             maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
         }
+        row.addView(lbl, LinearLayout.LayoutParams(dp(96), ViewGroup.LayoutParams.WRAP_CONTENT))
+
         val valueView = TextView(this).apply {
             text = initialValue
             setTextColor(Color.parseColor("#E2E8F0"))
@@ -497,11 +501,10 @@ class MainActivity : AppCompatActivity() {
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
         }
-        box.addView(lbl)
-        box.addView(valueView, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-        ).apply { topMargin = dp(3) })
-        return box to valueView
+        row.addView(valueView, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+            leftMargin = dp(12)
+        })
+        return row to valueView
     }
 
     private fun makeGuideLine(text: String): TextView = TextView(this).apply {

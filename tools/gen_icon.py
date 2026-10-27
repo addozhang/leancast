@@ -65,6 +65,30 @@ def compose_legacy(size: int) -> Image.Image:
     return out
 
 
+def compose_brand(size: int) -> Image.Image:
+    """Header/brand icon visually identical to the launcher adaptive icon:
+    full-bleed background with the foreground zoomed to the adaptive visible
+    zone (center 66.7%), clipped to a rounded square."""
+    radius = int(size * 0.20)
+    mask = Image.new("L", (size, size), 0)
+    rounded(ImageDraw.Draw(mask), (0, 0, size - 1, size - 1), radius, 255)
+
+    bg = Image.new("RGBA", (size, size), BG)
+    zoom = int(round(size / 0.667))
+    fg = draw_foreground(zoom)
+    off = (fg.width - size) // 2
+    fg = fg.crop((off, off, off + size, off + size))
+
+    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    layer.alpha_composite(fg)
+    visible = Image.composite(layer, Image.new("RGBA", (size, size), (0, 0, 0, 0)), mask)
+
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    out.paste(bg, (0, 0), mask)
+    out.alpha_composite(visible)
+    return out
+
+
 def main() -> int:
     # adaptive foreground + background
     fg = draw_foreground(FG_SIZE)
@@ -95,6 +119,11 @@ def main() -> int:
         d = RES / f"mipmap-{bucket}"
         d.mkdir(parents=True, exist_ok=True)
         compose_legacy(size).save(d / "ic_launcher.png")
+
+    # in-app header brand icon (matches launcher adaptive icon crop)
+    nodpi = RES / "drawable-nodpi"
+    nodpi.mkdir(parents=True, exist_ok=True)
+    compose_brand(192).save(nodpi / "ic_brand.png")
 
     print("icon set written under", RES)
     return 0

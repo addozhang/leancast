@@ -45,3 +45,4 @@
 - [x] 8.3 Replace default Media3 touch controller in `PlayerActivity` with custom TV OSD (top title bar, center glassmorphic state/seek pill, bottom progress bar + remote legend)
 - [x] 8.4 Verify on Fire TV and capture screenshots of new MainActivity & PlayerActivity OSD
 - [x] 8.5 Separate pure `values/strings.xml` (English) and `values-zh/strings.xml` (Simplified Chinese) and add a language toggle card (`中文` / `EN`) persisted in `Settings`
+- [x] 8.6 Spec rows replace 3-cell grid (no truncation); zh guide step 2 aligned with en (generic video app); header brand icon matches launcher adaptive crop (ic_brand.png via gen_icon.py)
