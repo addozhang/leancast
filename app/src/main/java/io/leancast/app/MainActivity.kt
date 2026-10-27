@@ -66,6 +66,8 @@ class MainActivity : AppCompatActivity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            clipChildren = false
+            clipToPadding = false
             background = GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 intArrayOf(Color.parseColor("#080D1A"), Color.parseColor("#0F172A"), Color.parseColor("#111827")),
@@ -191,23 +193,32 @@ class MainActivity : AppCompatActivity() {
             topMargin = dp(2)
         })
 
-        // Endpoint + Protocol pills
-        val pillsRow = LinearLayout(this).apply {
+        // Endpoint + Protocol + Decoder 3-Cell Specs Grid
+        val specsRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        pillEndpoint = makeInfoPill("HTTP  -:-")
-        val pillProto = makeInfoPill("DLNA / UPnP AV 1.0")
-        val pillCodec = makeInfoPill(getString(R.string.pill_codec))
-        pillsRow.addView(pillEndpoint, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+        val epCell = makeSpecCell(getString(R.string.meta_label_endpoint), "-:-", monospace = true)
+        pillEndpoint = epCell.second
+        val protoCell = makeSpecCell(
+            getString(R.string.meta_label_protocol),
+            getString(R.string.meta_value_protocol),
+            monospace = false,
+        )
+        val codecCell = makeSpecCell(
+            getString(R.string.meta_label_decoder),
+            getString(R.string.meta_value_decoder),
+            monospace = false,
+        )
+        specsRow.addView(epCell.first, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.15f).apply {
             rightMargin = dp(10)
         })
-        pillsRow.addView(pillProto, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+        specsRow.addView(protoCell.first, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.95f).apply {
             rightMargin = dp(10)
         })
-        pillsRow.addView(pillCodec)
-        card.addView(pillsRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = dp(10)
+        specsRow.addView(codecCell.first, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.05f))
+        card.addView(specsRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(14)
         })
 
         // Now Playing Box
@@ -270,6 +281,9 @@ class MainActivity : AppCompatActivity() {
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
+            clipChildren = false
+            clipToPadding = false
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
 
         col.addView(TextView(this).apply {
@@ -403,7 +417,8 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { onClick() }
             setOnFocusChangeListener { v, hasFocus ->
                 v.background = if (hasFocus) focusedBg else normalBg
-                val scale = if (hasFocus) 1.03f else 1.0f
+                val scale = if (hasFocus) 1.02f else 1.0f
+                v.elevation = if (hasFocus) dp(8).toFloat() else 0f
                 v.animate().scaleX(scale).scaleY(scale).setDuration(140).start()
             }
         }
@@ -450,18 +465,43 @@ class MainActivity : AppCompatActivity() {
         return ActionCardRefs(row, subView, pill)
     }
 
-    private fun makeInfoPill(text: String): TextView = TextView(this).apply {
-        this.text = text
-        setTextColor(Color.parseColor("#94A3B8"))
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        typeface = Typeface.MONOSPACE
-        setPadding(dp(10), dp(4), dp(10), dp(4))
-        background = roundedRect(
-            fillColor = Color.parseColor("#0F172A"),
-            strokeColor = Color.parseColor("#1E293B"),
-            strokeWidthPx = dp(1),
-            radiusPx = dp(8).toFloat(),
-        )
+    private fun makeSpecCell(
+        label: String,
+        initialValue: String,
+        monospace: Boolean,
+    ): Pair<LinearLayout, TextView> {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = roundedRect(
+                fillColor = Color.parseColor("#0B1120"),
+                strokeColor = Color.parseColor("#1E293B"),
+                strokeWidthPx = dp(1),
+                radiusPx = dp(10).toFloat(),
+            )
+        }
+        val lbl = TextView(this).apply {
+            text = label
+            setTextColor(Color.parseColor("#64748B"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.06f
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+        }
+        val valueView = TextView(this).apply {
+            text = initialValue
+            setTextColor(Color.parseColor("#E2E8F0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            typeface = if (monospace) Typeface.MONOSPACE else Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+        }
+        box.addView(lbl)
+        box.addView(valueView, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(3) })
+        return box to valueView
     }
 
     private fun makeGuideLine(text: String): TextView = TextView(this).apply {
@@ -477,7 +517,7 @@ class MainActivity : AppCompatActivity() {
         guideStep3.text = getString(R.string.guide_step_3, name)
 
         val ep = CastBus.endpoint.ifEmpty { "-:-" }
-        pillEndpoint.text = "HTTP  $ep"
+        pillEndpoint.text = ep
 
         val session = CastBus.session
         val state = session?.state

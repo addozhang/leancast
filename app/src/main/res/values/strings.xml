@@ -22,6 +22,11 @@
     <string name="label_device_name">DEVICE NAME</string>
     <string name="label_now_playing">CURRENT SESSION</string>
     <string name="label_idle_hint">Ready to receive casts from your phone…</string>
+    <string name="meta_label_endpoint">ENDPOINT</string>
+    <string name="meta_label_protocol">PROTOCOL</string>
+    <string name="meta_value_protocol">DLNA / UPnP AV</string>
+    <string name="meta_label_decoder">DECODER</string>
+    <string name="meta_value_decoder">4K HW · HLS / MP4</string>
     <string name="pill_codec">4K Hardware Decode · HLS / MP4</string>
 
     <string name="guide_title">QUICK START</string>

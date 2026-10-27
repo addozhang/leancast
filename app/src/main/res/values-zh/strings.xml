@@ -22,6 +22,11 @@
     <string name="label_device_name">投屏设备名称</string>
     <string name="label_now_playing">当前投屏状态</string>
     <string name="label_idle_hint">正在局域网待命，随时接收手机视频投屏…</string>
+    <string name="meta_label_endpoint">监听地址</string>
+    <string name="meta_label_protocol">通信协议</string>
+    <string name="meta_value_protocol">DLNA / UPnP AV</string>
+    <string name="meta_label_decoder">解码引擎</string>
+    <string name="meta_value_decoder">4K 硬解 · HLS / MP4</string>
     <string name="pill_codec">4K 硬件解码 · HLS / MP4</string>
 
     <string name="guide_title">快速投屏指南</string>
