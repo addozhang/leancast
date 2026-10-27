@@ -3,15 +3,15 @@
 ## ADDED Requirements
 
 ### Requirement: On-screen playback HUD
-While the player surface is foreground, the app SHALL display a HUD consisting of: a seekbar reflecting live position and duration with elapsed/total time text, a play/pause affordance, and a transient center indicator that appears for a short window after pause, resume, or seek key presses and then fades. The HUD SHALL be operable with the D-pad (focusable seekbar and play/pause control) and SHALL auto-hide during uninterrupted playback.
+While the player surface is foreground, the app SHALL display a custom TV OSD overlay (replacing the touch-oriented Media3 default controller) consisting of: a top bar showing the current media title, a bottom bar with elapsed/total time, a high-contrast progress bar, and a D-pad key legend, plus a center glassmorphic pill indicator that shows state (`⏸` / `▶`) or signed seek step (`⏩ +30s → 01:45`) on pause, resume, or seek key presses. The HUD SHALL auto-hide after a short timeout during uninterrupted playback and remain visible while paused.
 
 #### Scenario: HUD appears during playback
 - **WHEN** media is playing and the user presses any D-pad key
-- **THEN** the HUD (seekbar + times + play/pause) becomes visible and auto-hides after a short timeout of uninterrupted playback
+- **THEN** the TV OSD (top title bar + bottom progress bar + center seek/state pill) becomes visible and auto-hides after a short timeout of uninterrupted playback
 
-#### Scenario: Center indicator signals pause
-- **WHEN** the user presses the pause/resume key while playing
-- **THEN** a centered indicator reflects the new state (paused or playing) for a short window before fading, in addition to the persistent HUD while paused
+#### Scenario: Center indicator signals pause and seek delta
+- **WHEN** the user presses pause or seek keys while playing
+- **THEN** a centered pill reflects the new state or signed seek delta + target timestamp before fading, and the HUD stays visible while paused
 
 ### Requirement: Compatible media fetching
 The playback layer SHALL fetch media over HTTP with a browser-like `User-Agent` and an `Accept: */*` header, and SHALL follow cross-protocol redirects (HTTP ↔ HTTPS). The header set SHALL be produced by a pure, unit-testable helper so senders with CDN header checks (bilibili, Youku) are served.
