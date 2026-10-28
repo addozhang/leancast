@@ -64,21 +64,26 @@ def main() -> int:
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(TIMEOUT)
-    sock.sendto(M_SEARCH, MULTICAST)
 
     location = None
-    deadline = time.time() + TIMEOUT
-    while time.time() < deadline:
-        try:
-            data, addr = sock.recvfrom(4096)
-        except socket.timeout:
+    # TVs can take a while to cold-start after wake/reboot; retry discovery.
+    for attempt in range(3):
+        sock.sendto(M_SEARCH, MULTICAST)
+        deadline = time.time() + TIMEOUT
+        while time.time() < deadline:
+            try:
+                data, addr = sock.recvfrom(4096)
+            except socket.timeout:
+                break
+            text = data.decode(errors="replace")
+            m = re.search(r"LOCATION:\s*(\S+)", text, re.I)
+            if m and "desc.xml" in m.group(1):
+                location = m.group(1)
+                print(f"[1] M-SEARCH answered by {addr[0]}: LOCATION={location}")
+                break
+        if location:
             break
-        text = data.decode(errors="replace")
-        m = re.search(r"LOCATION:\s*(\S+)", text, re.I)
-        if m and "desc.xml" in m.group(1):
-            location = m.group(1)
-            print(f"[1] M-SEARCH answered by {addr[0]}: LOCATION={location}")
-            break
+        print(f"[1] discovery attempt {attempt + 1}/3 found nothing, retrying…")
     if not location:
         print("[1] FAIL: no MediaRenderer responded to M-SEARCH")
         return 1
