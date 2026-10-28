@@ -1,5 +1,12 @@
 # LeanCast
 
+English | [简体中文](README.zh-CN.md)
+
+<p align="center">
+  <img src="docs/screenshots/main-en.png" width="49%" alt="LeanCast TV dashboard" />
+  <img src="docs/screenshots/player-osd-en.png" width="49%" alt="LeanCast playback OSD" />
+</p>
+
 A minimal, ad-free **DLNA/UPnP cast receiver** for Android TV. Open any video app
 with a cast button (Bilibili, iQiyi, Tencent Video, Youku, Quark, …), pick this
 receiver, and the video plays fullscreen with hardware decoding — no ads, no
@@ -17,12 +24,16 @@ Phone app --SSDP--> discovers  Phone app --SOAP SetAVTransportURI--> LeanCast
   RenderingControl / ConnectionManager SOAP control, GENA subscribe stubs.
 - **Hardware decoding** via Media3/ExoPlayer: HLS (`.m3u8`), progressive MP4,
   Matroska, HTTP-FLV (best effort), HTTP↔HTTPS redirects, cleartext LAN URLs.
-- **TV remote controls**: OK = pause/resume, ◀ ▶ = seek ±10 s, Back = stop.
+- **TV-native controls & OSD**: OK = pause/resume, ◀ ▶ = seek with an
+  **escalating fast-forward ladder (10 s → 5 min while held)**, Back = exit;
+  on-screen HUD with live progress bar, media title, and seek-step feedback in
+  English or Chinese.
 - **Lean & private**: idle PSS ≈ 70 MB (≈ 39 MB private) on a 1.6 GB TV;
   zero analytics, zero non-LAN network calls; pure-Kotlin APK with **no native
   libs** — one artifact runs on `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`.
-- **Nothing hardcoded**: the cast name defaults to the device model
-  (`Build.MODEL`) and is user-renamable; UUID persists across reboots.
+- **Nothing hardcoded**: the cast name defaults to `LeanCast` and is
+  user-renamable; UUID persists across reboots; UI language switchable between
+  简体中文 and English.
 - Tested on an Amazon Fire TV (Fire OS 7 / Android 9, 32-bit MTK SoC) with
   `minSdk 21` / `targetSdk 28`.
 
