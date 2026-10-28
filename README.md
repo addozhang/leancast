@@ -28,8 +28,8 @@ Phone app --SSDP--> discovers  Phone app --SOAP SetAVTransportURI--> LeanCast
   **escalating fast-forward ladder (10 s → 5 min while held)**, Back = exit;
   on-screen HUD with live progress bar, media title, and seek-step feedback in
   English or Chinese.
-- **Lean & private**: idle PSS ≈ 70 MB (≈ 39 MB private) on a 1.6 GB TV;
-  zero analytics, zero non-LAN network calls; pure-Kotlin APK with **no native
+- **Lean & private**: lighter than the stock TV launcher (see below); zero
+  analytics, zero non-LAN network calls; pure-Kotlin APK with **no native
   libs** — one artifact runs on `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`.
 - **Nothing hardcoded**: the cast name defaults to `LeanCast` and is
   user-renamable; UUID persists across reboots; UI language switchable between
@@ -78,6 +78,18 @@ Notes:
   receiver, so use the `[TV]` button inside video apps.
 - Tested an unlisted device? Open a **Device compatibility report** issue and
   help grow the matrix.
+
+## Resource usage
+
+Measured on the primary test device (Fire TV, 1.6 GB RAM); idle = receiver
+waiting on the dashboard:
+
+| State | RAM (PSS) | CPU | Storage |
+| :--- | :--- | :--- | :--- |
+| Idle / waiting | 63–72 MB (≈ 33 MB private) | ≈ 0% | 5 MB APK + < 0.1 MB data |
+| Casting 1080p | ≈ 74 MB | ~4–5% of total (decode is hardware) | — |
+
+Lighter than the stock Fire TV launcher (83 MB PSS) on the same device.
 
 ## Releases & CI
 

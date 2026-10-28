@@ -20,7 +20,7 @@
 - **标准 UPnP AV `MediaRenderer:1`** — SSDP 设备发现、AVTransport / RenderingControl / ConnectionManager SOAP 控制、GENA 订阅桩。
 - **硬件解码**（Media3/ExoPlayer）：HLS（`.m3u8`）、渐进式 MP4、Matroska、HTTP-FLV（尽力支持）、HTTP↔HTTPS 重定向、局域网明文地址。
 - **TV 原生操控与 OSD**：OK 键 暂停/继续，◀ ▶ 长按**阶梯加速快进（10 秒 → 5 分钟）**，返回键 退出；屏上 HUD 实时进度条、片名与快进步长反馈，支持中英文。
-- **轻量且保护隐私**：1.6GB 内存电视上空闲 PSS 约 70MB（私有约 39MB）；零埋点、除局域网外零网络请求；纯 Kotlin APK **无任何原生库**——一个安装包通吃 `armeabi-v7a`、`arm64-v8a`、`x86`、`x86_64`。
+- **轻量且保护隐私**：比电视自带桌面还省内存（见下表）；零埋点、除局域网外零网络请求；纯 Kotlin APK **无任何原生库**——一个安装包通吃 `armeabi-v7a`、`arm64-v8a`、`x86`、`x86_64`。
 - **零硬编码**：投屏名称默认 `LeanCast`，可随时改名；UUID 重启保持不变；界面语言可在简体中文与 English 间切换。
 - 已在 Amazon Fire TV（Fire OS 7 / Android 9，32 位 MTK SoC）上实测，`minSdk 21` / `targetSdk 28`。
 
@@ -57,6 +57,17 @@ LeanCast 是**无原生库**的纯 Kotlin APK，`minSdk 21`（Android 5.0，2014
 说明：
 - 手机「系统投屏」（Miracast）不在本项目范畴——LeanCast 是 DLNA/UPnP 接收器，请在视频 App 内使用 `[TV]` 按钮。
 - 实测了列表之外的设备？欢迎提交 **Device compatibility report** Issue，一起完善支持矩阵。
+
+## 资源占用
+
+以下为实测数据（主测试设备 Fire TV，1.6GB 内存；空闲 = 停留在主界面待命）：
+
+| 状态 | 内存 (PSS) | CPU | 存储 |
+| :--- | :--- | :--- | :--- |
+| 空闲待命 | 63–72 MB（私有约 33 MB） | ≈ 0% | 安装包 5 MB + 数据 < 0.1 MB |
+| 播放 1080p | ≈ 74 MB | 全机约 4–5%（解码走硬件） | — |
+
+同一设备上比 Fire TV 自带桌面（83 MB PSS）更省。
 
 ## 版本发布与 CI
 
