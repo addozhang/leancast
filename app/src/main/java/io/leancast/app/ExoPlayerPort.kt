@@ -134,6 +134,24 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
                         )
                         session?.onPlayerError()
                     }
+
+                    // Field diagnostics for "audio but no video" reports:
+                    // tells apart codec-unsupported (no selected video track)
+                    // from surface/renderer issues (track selected, no picture).
+                    override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                        tracks.groups
+                            .filter { it.type == androidx.media3.common.C.TRACK_TYPE_VIDEO }
+                            .forEach { group ->
+                                val selected = (0 until group.length)
+                                    .map { group.getTrackFormat(it) to group.isTrackSelected(it) }
+                                    .filter { it.second }
+                                    .joinToString { "${it.first.sampleMimeType ?: "?"} ${it.first.width}x${it.first.height}" }
+                                Log.i(
+                                    TAG,
+                                    "video track selected=[$selected] supported=${group.isSupported} size=${group.length}",
+                                )
+                            }
+                    }
                 })
             }
     }

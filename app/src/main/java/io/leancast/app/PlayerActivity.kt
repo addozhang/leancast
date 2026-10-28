@@ -77,6 +77,7 @@ class PlayerActivity : AppCompatActivity() {
             when (state) {
                 TransportState.STOPPED, TransportState.NO_MEDIA_PRESENT -> finish()
                 TransportState.PAUSED_PLAYBACK -> {
+                    attachPlayerIfMissing()
                     showOsdBars(persistent = true)
                     showCenterMessage(
                         mainText = getString(R.string.osd_paused),
@@ -86,6 +87,7 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 TransportState.PLAYING -> {
                     pendingSeekMs = -1L
+                    attachPlayerIfMissing()
                     showOsdBars(persistent = false)
                     showCenterMessage(
                         mainText = getString(R.string.osd_playing),
@@ -94,6 +96,7 @@ class PlayerActivity : AppCompatActivity() {
                     )
                 }
                 TransportState.TRANSITIONING -> {
+                    attachPlayerIfMissing()
                     showOsdBars(persistent = true)
                     showCenterMessage(
                         mainText = getString(R.string.osd_loading),
@@ -170,8 +173,19 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        playerView.player = CastBus.port?.currentPlayer
+        attachPlayerIfMissing()
         ui.post(tickProgress)
+    }
+
+    /**
+     * Surface-race guard: on fast TVs the player can be created after this
+     * activity started, leaving the video with no surface (audio only, no
+     * error). Re-attach whenever we notice the mismatch.
+     */
+    private fun attachPlayerIfMissing() {
+        if (playerView.player == null) {
+            playerView.player = CastBus.port?.currentPlayer
+        }
     }
 
     override fun onStop() {
