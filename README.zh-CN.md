@@ -50,8 +50,8 @@ LeanCast 是**无原生库**的纯 Kotlin APK，`minSdk 21`（Android 5.0，2014
 | 层级 | 设备 | 说明 |
 | :--- | :--- | :--- |
 | ✅ 已验证 | Amazon Fire TV / Fire TV Stick（Fire OS 6/7） | 主要测试设备：Fire OS 7.7，32 位 MTK SoC |
-| ✅ 预期兼容 | 认证 Android TV / Google TV（索尼、TCL、飞利浦、Chromecast w/ Google TV）、NVIDIA Shield、Amlogic / Rockchip 方案盒子、小米国际版盒子 | 侧载即用 |
-| ⚠️ 实验性 | 可侧载的国产智能电视（MIUI TV / PatchWall、酷开、海信安卓机型）、天猫魔盒（YunOS） | 需开启「未知来源安装」；欢迎通过兼容性 Issue 反馈结果 |
+| ✅ 预期兼容 | 认证 Android TV / Google TV（索尼、TCL、飞利浦、Chromecast w/ Google TV）、NVIDIA Shield、Amlogic / Rockchip 方案盒子、小米国际版盒子 | 装上即用 |
+| ⚠️ 实验性 | 支持安装第三方应用的国产智能电视（MIUI TV / PatchWall、酷开、海信安卓机型）、天猫魔盒（YunOS） | 需开启「未知来源安装」；欢迎通过兼容性 Issue 反馈结果 |
 | ❌ 不支持 | 三星（Tizen）、LG（webOS）、华为智慧屏（HarmonyOS）、非智能电视 | 无 Android 应用运行时——请搭配 ✅ 层级的电视盒子 |
 
 说明：
@@ -85,7 +85,7 @@ git push origin v0.2.0
 
 ### 发布签名
 
-默认情况下 release APK 回退使用 debug keystore（个人侧载足够）。如需跨版本稳定的发布签名，请在仓库中配置以下 Secrets（**Settings → Secrets and variables → Actions**）：
+默认情况下 release APK 回退使用 debug keystore（个人安装足够）。如需跨版本稳定的发布签名，请在仓库中配置以下 Secrets（**Settings → Secrets and variables → Actions**）：
 
 | Secret | 值 |
 | :--- | :--- |
