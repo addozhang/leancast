@@ -72,11 +72,26 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    /** Leaves the player only if no new cast materialised within the grace window. */
+    private val finishIfStillIdle = Runnable {
+        when (CastBus.session?.state) {
+            null, TransportState.NO_MEDIA_PRESENT -> finish()
+            else -> Unit
+        }
+    }
+
     private val sessionListener = CastSession.Listener { state ->
         runOnUiThread {
             when (state) {
-                TransportState.STOPPED, TransportState.NO_MEDIA_PRESENT -> finish()
+                // A sender switching source does SetAVTransportURI + Play back to
+                // back, so NO_MEDIA_PRESENT is transient. Finishing straight away
+                // tore this activity down while audio kept playing, and the
+                // follow-up launch for the new item was lost (the instance was
+                // already finishing) — the user saw the dashboard over audio.
+                TransportState.STOPPED -> finish()
+                TransportState.NO_MEDIA_PRESENT -> scheduleIdleFinish()
                 TransportState.PAUSED_PLAYBACK -> {
+                    ui.removeCallbacks(finishIfStillIdle)
                     attachPlayerIfMissing()
                     showOsdBars(persistent = true)
                     showCenterMessage(
@@ -87,6 +102,7 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 TransportState.PLAYING -> {
                     pendingSeekMs = -1L
+                    ui.removeCallbacks(finishIfStillIdle)
                     attachPlayerIfMissing()
                     showOsdBars(persistent = false)
                     showCenterMessage(
@@ -96,6 +112,7 @@ class PlayerActivity : AppCompatActivity() {
                     )
                 }
                 TransportState.TRANSITIONING -> {
+                    ui.removeCallbacks(finishIfStillIdle)
                     attachPlayerIfMissing()
                     showOsdBars(persistent = true)
                     showCenterMessage(
@@ -186,6 +203,12 @@ class PlayerActivity : AppCompatActivity() {
         if (playerView.player == null) {
             playerView.player = CastBus.port?.currentPlayer
         }
+    }
+
+    /** Defers the teardown so an immediate re-cast can keep this activity alive. */
+    private fun scheduleIdleFinish() {
+        ui.removeCallbacks(finishIfStillIdle)
+        ui.postDelayed(finishIfStillIdle, SWITCH_GRACE_MS)
     }
 
     override fun onStop() {
@@ -455,5 +478,8 @@ class PlayerActivity : AppCompatActivity() {
     companion object {
         private const val BAR_TIMEOUT_MS = 3_000L
         private const val PILL_TIMEOUT_MS = 1_300L
+
+        /** How long NO_MEDIA_PRESENT must persist before the player screen exits. */
+        private const val SWITCH_GRACE_MS = 1_500L
     }
 }
