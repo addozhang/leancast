@@ -36,6 +36,9 @@ class ReceiverService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        // Promote to foreground first: `startForegroundService` gives us only an
+        // ~5 s window, so do it before the (slower) player/server wiring below.
+        startForeground(NOTIFICATION_ID, buildNotification())
         settings = Settings(this)
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -68,7 +71,6 @@ class ReceiverService : Service() {
         ssdp = SsdpAgent(identity).also { it.start() }
 
         acquireMulticastLock()
-        startForeground(NOTIFICATION_ID, buildNotification())
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
@@ -180,8 +182,18 @@ class ReceiverService : Service() {
         private const val NOTIFICATION_ID = 1
         private const val PREFERRED_PORT = 49_152
 
+        /**
+         * Starts the receiver. Uses [Context.startForegroundService] on API 26+ so the
+         * call is legal from a background context (e.g. [BootReceiver] after boot) —
+         * a plain `startService` there throws `IllegalStateException` on Android 8+.
+         */
         fun start(context: Context) {
-            context.startService(Intent(context, ReceiverService::class.java))
+            val intent = Intent(context, ReceiverService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
         }
 
         fun stop(context: Context) {
