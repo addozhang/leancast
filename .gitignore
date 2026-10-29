@@ -13,3 +13,4 @@ domain/build
 *.apk.idsig
 ci-release.keystore
 *.jks
+.workbuddy/
