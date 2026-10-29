@@ -17,7 +17,7 @@
 
 ## 特性
 
-- **标准 UPnP AV `MediaRenderer:1`** — SSDP 设备发现、AVTransport / RenderingControl / ConnectionManager SOAP 控制、GENA 订阅桩。
+- **标准 UPnP AV `MediaRenderer:1`** — SSDP 设备发现、AVTransport / RenderingControl / ConnectionManager SOAP 控制、完整的 GENA 事件（订阅后立即推送初始 `LastChange`，之后每次状态变化推送）。
 - **硬件解码**（Media3/ExoPlayer）：HLS（`.m3u8`）、渐进式 MP4、Matroska、HTTP-FLV（尽力支持）、HTTP↔HTTPS 重定向、局域网明文地址。
 - **TV 原生操控与 OSD**：OK 键 暂停/继续，◀ ▶ 长按**阶梯加速快进（10 秒 → 5 分钟）**，返回键 退出；屏上 HUD 实时进度条、片名与快进步长反馈，支持中英文。
 - **轻量且保护隐私**：比电视自带桌面还省内存（见下表）；零埋点、除局域网外零网络请求；纯 Kotlin APK **无任何原生库**——一个安装包通吃 `armeabi-v7a`、`arm64-v8a`、`x86`、`x86_64`。
@@ -110,7 +110,7 @@ domain/          纯 Kotlin 协议核心（JVM 单元测试，90 个用例）
                  H:MM:SS 时间换算、SOAP 路由
   cast/          AVTransport 状态机、播放器端口、音量数学
 app/             Android 壳层（薄适配层，真机 E2E 验证）
-  ControlServer  NanoHTTPD：/desc.xml、/scpd/*、/ctl/*、/evt/*
+  ControlServer  极简 HTTP/1.1 服务：/desc.xml、/scpd/*、/ctl/*、/evt/*
   SsdpAgent      组播 UDP 监听 + 通告（持有 MulticastLock）
   ExoPlayerPort  PlayerPort 适配器（主线程封装、位置缓存）
   ReceiverService  组装一切的前台服务
@@ -129,4 +129,4 @@ python3 tools/e2e_control_point.py http://<局域网主机>/video.mp4
 
 ## 许可证
 
-Apache-2.0。依赖：NanoHTTPD（BSD-3）、Media3（Apache-2.0）。
+Apache-2.0。依赖：Media3（Apache-2.0）。

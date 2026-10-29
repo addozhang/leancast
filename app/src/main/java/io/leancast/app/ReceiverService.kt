@@ -15,8 +15,10 @@ import io.leancast.domain.cast.CastSession
 import io.leancast.domain.cast.TransportState
 import io.leancast.domain.cast.VolumeMath
 import io.leancast.domain.ssdp.SsdpIdentity
+import io.leancast.domain.upnp.LastChangeEvent
 import io.leancast.domain.upnp.RendererDescription
 import io.leancast.domain.upnp.SoapRouter
+import io.leancast.domain.upnp.UpnpTime
 
 /**
  * Foreground service that owns the whole receiver: multicast lock, SSDP agent,
@@ -29,6 +31,7 @@ class ReceiverService : Service() {
     private lateinit var playerPort: ExoPlayerPort
     private var server: ControlServer? = null
     private var ssdp: SsdpAgent? = null
+    private lateinit var events: SubscriptionRegistry
     private var multicastLock: WifiManager.MulticastLock? = null
     private lateinit var audioManager: AudioManager
 
@@ -53,10 +56,14 @@ class ReceiverService : Service() {
         CastBus.session = session
         CastBus.port = playerPort
 
+        events = SubscriptionRegistry()
         val server = ControlServer.startWithFallback(
             preferredPort = PREFERRED_PORT,
             descriptionProvider = ::rendererDescription,
             router = SoapRouter(session),
+            events = events,
+            eventBody = ::eventBody,
+            serverToken = serverToken(),
         )
         this.server = server
 
@@ -78,6 +85,7 @@ class ReceiverService : Service() {
     override fun onDestroy() {
         ssdp?.stop()
         server?.stop()
+        events.shutdown()
         playerPort.release()
         releaseMulticastLock()
         CastBus.session = null
@@ -109,6 +117,17 @@ class ReceiverService : Service() {
             }
         }
         updateNotification(state)
+        events.publish("avt", eventBody("avt"))
+    }
+
+    /** GENA `LastChange` payload for a service, reflecting the current session. */
+    private fun eventBody(service: String): String = when (service) {
+        "rcs" -> LastChangeEvent.renderingControl(session.volume, mute = false)
+        else -> LastChangeEvent.avTransport(
+            transportState = session.state.name,
+            currentUri = session.currentUri,
+            currentTrackDuration = UpnpTime.renderMsToHms(session.durationMs()),
+        )
     }
 
     private fun applyDeviceVolume(percent: Int) {
@@ -118,6 +137,9 @@ class ReceiverService : Service() {
             VolumeMath.mapPercentToSteps(percent, max),
             0,
         )
+        // Guarded: the initial volume is applied while onCreate is still wiring
+        // up the eventing layer.
+        if (::events.isInitialized) events.publish("rcs", eventBody("rcs"))
     }
 
     private fun initialVolumePercent(): Int {

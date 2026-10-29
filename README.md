@@ -21,7 +21,8 @@ Phone app --SSDP--> discovers  Phone app --SOAP SetAVTransportURI--> LeanCast
 ## Highlights
 
 - **Standard UPnP AV `MediaRenderer:1`** — SSDP discovery, AVTransport /
-  RenderingControl / ConnectionManager SOAP control, GENA subscribe stubs.
+  RenderingControl / ConnectionManager SOAP control, and real GENA eventing
+  (initial `LastChange` on subscribe, then a notification per state change).
 - **Hardware decoding** via Media3/ExoPlayer: HLS (`.m3u8`), progressive MP4,
   Matroska, HTTP-FLV (best effort), HTTP↔HTTPS redirects, cleartext LAN URLs.
 - **TV-native controls & OSD**: OK = pause/resume, ◀ ▶ = seek with an
@@ -140,7 +141,7 @@ domain/          Pure-Kotlin protocol core (JVM-unit-tested, 90 tests)
                  response envelopes & faults, H:MM:SS time math, SOAP router
   cast/          AVTransport state machine, player port, volume math
 app/             Android shell (thin adapters, E2E-verified on device)
-  ControlServer  NanoHTTPD: /desc.xml, /scpd/*, /ctl/*, /evt/*
+  ControlServer  Minimal HTTP/1.1 server: /desc.xml, /scpd/*, /ctl/*, /evt/*
   SsdpAgent      Multicast UDP listener + advertiser (MulticastLock held)
   ExoPlayerPort  PlayerPort adapter (main-thread marshalled, cached position)
   ReceiverService Foreground service assembling everything
@@ -159,4 +160,4 @@ python3 tools/e2e_control_point.py http://<lan-host>/video.mp4
 
 ## License
 
-Apache-2.0. Dependencies: NanoHTTPD (BSD-3), Media3 (Apache-2.0).
+Apache-2.0. Dependencies: Media3 (Apache-2.0).
