@@ -46,6 +46,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var elapsedView: TextView
     private lateinit var durationView: TextView
     private lateinit var progressBar: ProgressBar
+    private lateinit var legendView: TextView
 
     private val ui = Handler(Looper.getMainLooper())
     private val hideCenterPill = Runnable {
@@ -230,12 +231,18 @@ class PlayerActivity : AppCompatActivity() {
                 true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                seekBy(SeekStepPolicy.stepFor(event?.repeatCount ?: 0, forward = true))
-                true
+                if (session.isLive()) true
+                else {
+                    seekBy(SeekStepPolicy.stepFor(event?.repeatCount ?: 0, forward = true))
+                    true
+                }
             }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                seekBy(SeekStepPolicy.stepFor(event?.repeatCount ?: 0, forward = false))
-                true
+                if (session.isLive()) true
+                else {
+                    seekBy(SeekStepPolicy.stepFor(event?.repeatCount ?: 0, forward = false))
+                    true
+                }
             }
             KeyEvent.KEYCODE_BACK -> {
                 session.stop()
@@ -392,13 +399,13 @@ class PlayerActivity : AppCompatActivity() {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
         ))
 
-        val legend = TextView(this).apply {
+        legendView = TextView(this).apply {
             text = getString(R.string.osd_legend)
             setTextColor(Color.parseColor("#94A3B8"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             gravity = Gravity.CENTER_HORIZONTAL
         }
-        bar.addView(legend, LinearLayout.LayoutParams(
+        bar.addView(legendView, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
         ).apply { topMargin = dp(12) })
 
@@ -427,6 +434,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun refreshProgressUi(overridePosMs: Long? = null) {
         val session = CastBus.session ?: return
+        val live = session.isLive()
         val pos = overridePosMs ?: if (pendingSeekMs >= 0L) pendingSeekMs else session.positionMs()
         val dur = session.durationMs()
         if (pendingSeekMs >= 0L && kotlin.math.abs(session.positionMs() - pendingSeekMs) < 1_500L) {
@@ -434,13 +442,25 @@ class PlayerActivity : AppCompatActivity() {
         }
         topTitleView.text = session.currentTitle?.takeIf { it.isNotBlank() } ?: getString(R.string.app_name)
         elapsedView.text = OsdFormatter.formatClock(pos)
-        durationView.text = OsdFormatter.formatClock(dur)
-        progressBar.progress = OsdFormatter.progressPermille(pos, dur)
+        if (live) {
+            // A live stream has no duration to fill a bar with; show the label
+            // and the time watched instead of a looping progress bar.
+            durationView.text = getString(R.string.osd_live)
+            progressBar.visibility = View.GONE
+            // Seek keys are ignored on live, so do not advertise them.
+            legendView.text = getString(R.string.osd_legend_live)
+        } else {
+            durationView.text = OsdFormatter.formatClock(dur)
+            progressBar.visibility = View.VISIBLE
+            progressBar.progress = OsdFormatter.progressPermille(pos, dur)
+            legendView.text = getString(R.string.osd_legend)
+        }
     }
 
     private fun currentClockSummary(): String {
         val session = CastBus.session ?: return ""
         val pos = OsdFormatter.formatClock(session.positionMs())
+        if (session.isLive()) return "$pos · ${getString(R.string.osd_live)}"
         val dur = OsdFormatter.formatClock(session.durationMs())
         return "$pos / $dur"
     }

@@ -59,5 +59,7 @@
     <string name="osd_paused">⏸  Paused</string>
     <string name="osd_playing">▶  Playing</string>
     <string name="osd_loading">⏳  Buffering…</string>
+    <string name="osd_live">● LIVE</string>
     <string name="osd_legend">OK Play / Pause    ·    ◀ ▶ Seek (Hold to Fast-Forward)    ·    Back Exit</string>
+    <string name="osd_legend_live">OK Play / Pause    ·    Back Exit</string>
 </resources>

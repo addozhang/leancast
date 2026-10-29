@@ -127,6 +127,7 @@ class ReceiverService : Service() {
             transportState = session.state.name,
             currentUri = session.currentUri,
             currentTrackDuration = UpnpTime.renderMsToHms(session.durationMs()),
+            isLive = session.isLive(),
         )
     }
 

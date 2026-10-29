@@ -27,6 +27,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
 
     @Volatile private var cachedPositionMs = 0L
     @Volatile private var cachedDurationMs = 0L
+    @Volatile private var cachedIsLive = false
     @Volatile private var lastUri: String? = null
 
     private val main = Handler(Looper.getMainLooper())
@@ -37,6 +38,9 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
                 cachedPositionMs = p.currentPosition.coerceAtLeast(0)
                 cachedDurationMs =
                     if (p.duration > 0) p.duration else 0L
+                // Live items report a sliding-window duration; the session turns
+                // that into "unknown" instead of passing the window size on.
+                cachedIsLive = p.isCurrentMediaItemLive
             }
             main.postDelayed(this, POLL_MS)
         }
@@ -84,6 +88,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
 
     override fun currentPositionMs(): Long = cachedPositionMs
     override fun currentDurationMs(): Long = cachedDurationMs
+    override fun isLive(): Boolean = cachedIsLive
 
     fun release() {
         main.post {
@@ -98,6 +103,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
             player = created
             cachedPositionMs = 0
             cachedDurationMs = 0
+            cachedIsLive = false
             main.post(poller)
         }
 

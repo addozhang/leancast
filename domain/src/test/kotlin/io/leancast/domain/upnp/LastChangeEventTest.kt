@@ -65,4 +65,20 @@ class LastChangeEventTest {
         assertEquals("Play,Seek", TransportActions.forState(TransportState.STOPPED, true))
         assertEquals("", TransportActions.forState(TransportState.NO_MEDIA_PRESENT, false))
     }
+
+    @Test
+    fun `live streams do not advertise seek`() {
+        assertEquals("Pause,Stop", TransportActions.forState(TransportState.PLAYING, true, isLive = true))
+        assertEquals("Play,Stop", TransportActions.forState(TransportState.PAUSED_PLAYBACK, true, isLive = true))
+        assertEquals("Play", TransportActions.forState(TransportState.STOPPED, true, isLive = true))
+    }
+
+    @Test
+    fun `live event omits seek from CurrentTransportActions`() {
+        val body = LastChangeEvent.avTransport(
+            "PLAYING", "http://live/x.m3u8", "0:00:00", isLive = true,
+        )
+        val inner = parse(body).getElementsByTagName("LastChange").item(0).textContent
+        assertTrue(inner.contains("CurrentTransportActions val=\"Pause,Stop\""))
+    }
 }

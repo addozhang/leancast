@@ -82,7 +82,7 @@ class SoapRouter(private val session: CastSession) {
         "GetCurrentTransportActions" -> Result(
             200,
             SoapResponses.getCurrentTransportActions(
-                TransportActions.forState(session.state, session.currentUri != null),
+                TransportActions.forState(session.state, session.currentUri != null, session.isLive()),
             ),
         )
         else -> invalidAction()

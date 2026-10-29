@@ -1,5 +1,8 @@
 package io.leancast.domain.upnp
 
+import io.leancast.domain.cast.TransportActions
+import io.leancast.domain.cast.TransportState
+
 /**
  * Builds the GENA `NOTIFY` bodies for UPnP AV services.
  *
@@ -20,7 +23,10 @@ object LastChangeEvent {
         currentUri: String?,
         currentTrackDuration: String,
         currentTrackMetaData: String? = null,
+        isLive: Boolean = false,
     ): String {
+        val state = TransportState.entries.firstOrNull { it.name == transportState }
+        val actions = state?.let { TransportActions.forState(it, currentUri != null, isLive) }.orEmpty()
         val inner = buildString {
             append("<Event xmlns=\"$AVT_NS\"><InstanceID val=\"0\">")
             append("<TransportState val=\"$transportState\"/>")
@@ -32,7 +38,7 @@ object LastChangeEvent {
             if (currentTrackMetaData != null) {
                 append("<CurrentTrackMetaData val=\"${XmlUtil.escape(currentTrackMetaData)}\"/>")
             }
-            append("<CurrentTransportActions val=\"${XmlUtil.escape(actionsFor(transportState))}\"/>")
+            append("<CurrentTransportActions val=\"${XmlUtil.escape(actions)}\"/>")
             append("</InstanceID></Event>")
         }
         return propertyset(inner)
@@ -51,12 +57,4 @@ object LastChangeEvent {
             "<e:propertyset xmlns:e=\"$PROPSET_NS\">" +
             "<e:property><LastChange>${XmlUtil.escape(innerEvent)}</LastChange></e:property>" +
             "</e:propertyset>"
-
-    private fun actionsFor(transportState: String): String = when (transportState) {
-        "PLAYING" -> "Pause,Stop,Seek"
-        "PAUSED_PLAYBACK" -> "Play,Stop,Seek"
-        "TRANSITIONING" -> "Stop"
-        "STOPPED" -> "Play,Seek"
-        else -> ""
-    }
 }

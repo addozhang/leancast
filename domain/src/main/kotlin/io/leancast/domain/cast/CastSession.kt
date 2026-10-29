@@ -14,6 +14,13 @@ interface PlayerPort {
     fun stop()
     fun currentPositionMs(): Long
     fun currentDurationMs(): Long
+
+    /**
+     * True when the current item is a live stream. For live items the player's
+     * duration/position describe a sliding window rather than the programme, so
+     * the session reports them differently (see [CastSession.durationMs]).
+     */
+    fun isLive(): Boolean = false
 }
 
 /** Notified when the UPnP-visible volume changes (0..100). */
@@ -25,7 +32,10 @@ fun interface VolumeSink {
  * The cast session: the AVTransport state machine plus current item bookkeeping.
  * Pure domain object; driven by SOAP actions and player callbacks.
  */
-class CastSession(private val port: PlayerPort) {
+class CastSession(
+    private val port: PlayerPort,
+    private val clockMs: () -> Long = System::currentTimeMillis,
+) {
 
     fun interface Listener {
         fun onStateChanged(state: TransportState)
@@ -44,6 +54,13 @@ class CastSession(private val port: PlayerPort) {
         private set
     var volume: Int = 100
         private set
+
+    /** Live-only: wall-clock time spent playing, with paused intervals excluded. */
+    private var elapsedAccumulatedMs = 0L
+    private var elapsedRunningSinceMs: Long? = null
+
+    /** True when the current item is a live stream; see [durationMs]. */
+    fun isLive(): Boolean = port.isLive()
 
     fun addListener(l: Listener) {
         listeners += l
@@ -65,6 +82,7 @@ class CastSession(private val port: PlayerPort) {
         currentUri = uri?.takeIf { it.isNotBlank() }
         currentMetaData = currentUri?.let { metaData }
         currentTitle = currentMetaData?.let { DidlParser.extractTitle(it) }
+        resetElapsed()
         enter(TransportState.NO_MEDIA_PRESENT)
     }
 
@@ -73,12 +91,15 @@ class CastSession(private val port: PlayerPort) {
         when (state) {
             TransportState.PAUSED_PLAYBACK -> {
                 port.play()
+                markElapsedRunning()
                 enter(TransportState.PLAYING)
             }
             TransportState.PLAYING, TransportState.TRANSITIONING -> Unit
             else -> {
                 val uri = currentUri ?: return
                 port.prepareAndPlay(uri)
+                resetElapsed()
+                markElapsedRunning()
                 enter(TransportState.TRANSITIONING)
             }
         }
@@ -89,6 +110,7 @@ class CastSession(private val port: PlayerPort) {
         when (state) {
             TransportState.PLAYING, TransportState.PAUSED_PLAYBACK -> {
                 port.pause()
+                markElapsedPaused()
                 enter(TransportState.PAUSED_PLAYBACK)
             }
             else -> Unit
@@ -99,6 +121,7 @@ class CastSession(private val port: PlayerPort) {
         when (state) {
             TransportState.PAUSED_PLAYBACK -> {
                 port.play()
+                markElapsedRunning()
                 enter(TransportState.PLAYING)
             }
             TransportState.TRANSITIONING -> Unit // already starting
@@ -108,10 +131,14 @@ class CastSession(private val port: PlayerPort) {
 
     fun stop() {
         port.stop()
+        resetElapsed()
         enter(TransportState.STOPPED)
     }
 
     fun seekTo(ms: Long) {
+        // A live stream has no meaningful absolute position; seeking into the
+        // window would just force a rebuffer.
+        if (isLive()) return
         when (state) {
             TransportState.PLAYING, TransportState.PAUSED_PLAYBACK, TransportState.TRANSITIONING ->
                 port.seekTo(ms)
@@ -135,16 +162,39 @@ class CastSession(private val port: PlayerPort) {
     fun positionMs(): Long =
         when (state) {
             TransportState.PLAYING, TransportState.PAUSED_PLAYBACK, TransportState.TRANSITIONING ->
-                port.currentPositionMs().coerceAtLeast(0)
+                if (isLive()) elapsedMs() else port.currentPositionMs().coerceAtLeast(0)
             else -> 0L
         }
 
+    /**
+     * Duration for senders. Live streams have no programme duration — the
+     * player would otherwise hand back the length of its sliding window (a
+     * 15-second number that keeps resetting), which senders render as a
+     * progress bar that loops. Report "unknown" instead, like other renderers.
+     */
     fun durationMs(): Long =
         when (state) {
             TransportState.PLAYING, TransportState.PAUSED_PLAYBACK, TransportState.TRANSITIONING ->
-                port.currentDurationMs().coerceAtLeast(0)
+                if (isLive()) 0L else port.currentDurationMs().coerceAtLeast(0)
             else -> 0L
         }
+
+    private fun elapsedMs(): Long =
+        elapsedAccumulatedMs + (elapsedRunningSinceMs?.let { (clockMs() - it).coerceAtLeast(0) } ?: 0L)
+
+    private fun markElapsedRunning() {
+        if (elapsedRunningSinceMs == null) elapsedRunningSinceMs = clockMs()
+    }
+
+    private fun markElapsedPaused() {
+        elapsedRunningSinceMs?.let { elapsedAccumulatedMs += (clockMs() - it).coerceAtLeast(0) }
+        elapsedRunningSinceMs = null
+    }
+
+    private fun resetElapsed() {
+        elapsedAccumulatedMs = 0L
+        elapsedRunningSinceMs = null
+    }
 
     fun setVolume(percent: Int) {
         val clamped = VolumeMath.clampPercent(percent)

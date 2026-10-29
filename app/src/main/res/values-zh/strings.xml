@@ -59,5 +59,7 @@
     <string name="osd_paused">⏸  已暂停</string>
     <string name="osd_playing">▶  继续播放</string>
     <string name="osd_loading">⏳  正在缓冲…</string>
+    <string name="osd_live">● 直播</string>
     <string name="osd_legend">确定键 暂停/播放    ·    左右键 快退/快进（长按加速）    ·    返回键 退出播放</string>
+    <string name="osd_legend_live">确定键 暂停/播放    ·    返回键 退出播放</string>
 </resources>

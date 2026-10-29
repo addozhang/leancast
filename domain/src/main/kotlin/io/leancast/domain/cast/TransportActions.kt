@@ -7,11 +7,18 @@ package io.leancast.domain.cast
  */
 object TransportActions {
 
-    fun forState(state: TransportState, hasMedia: Boolean): String = when (state) {
-        TransportState.PLAYING -> "Pause,Stop,Seek"
-        TransportState.PAUSED_PLAYBACK -> "Play,Stop,Seek"
-        TransportState.TRANSITIONING -> "Stop"
-        TransportState.STOPPED -> if (hasMedia) "Play,Seek" else ""
-        TransportState.NO_MEDIA_PRESENT -> ""
-    }
+    fun forState(state: TransportState, hasMedia: Boolean, isLive: Boolean = false): String =
+        when (state) {
+            // Seek is meaningless on a live stream: the window has no fixed
+            // positions, so advertising it would invite seeks we cannot honour.
+            TransportState.PLAYING -> if (isLive) "Pause,Stop" else "Pause,Stop,Seek"
+            TransportState.PAUSED_PLAYBACK -> if (isLive) "Play,Stop" else "Play,Stop,Seek"
+            TransportState.TRANSITIONING -> "Stop"
+            TransportState.STOPPED -> when {
+                !hasMedia -> ""
+                isLive -> "Play"
+                else -> "Play,Seek"
+            }
+            TransportState.NO_MEDIA_PRESENT -> ""
+        }
 }
