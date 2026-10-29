@@ -1,6 +1,7 @@
 package io.leancast.domain.upnp
 
 import io.leancast.domain.cast.CastSession
+import io.leancast.domain.cast.TransportActions
 
 /**
  * Pure SOAP control dispatcher: maps a parsed [SoapRequest] to an HTTP status +
@@ -76,6 +77,14 @@ class SoapRouter(private val session: CastSession) {
                 currentUri = session.currentUri,
             ),
         )
+        "GetTransportSettings" -> Result(200, SoapResponses.getTransportSettings())
+        "GetDeviceCapabilities" -> Result(200, SoapResponses.getDeviceCapabilities())
+        "GetCurrentTransportActions" -> Result(
+            200,
+            SoapResponses.getCurrentTransportActions(
+                TransportActions.forState(session.state, session.currentUri != null),
+            ),
+        )
         else -> invalidAction()
     }
 
@@ -87,11 +96,25 @@ class SoapRouter(private val session: CastSession) {
         "GetVolume" -> Result(200, SoapResponses.getVolume(session.volume))
         "SetMute" -> ok(action, UpnpService.RCS)
         "GetMute" -> Result(200, SoapResponses.getMute(false))
+        "ListPresets" -> Result(200, SoapResponses.listPresets())
+        "SelectPreset" -> ok(action, UpnpService.RCS)
+        "GetVolumeDBRange" -> Result(200, SoapResponses.getVolumeDbRange())
         else -> invalidAction()
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun routeCm(action: String, args: Map<String, String>): Result = when (action) {
         "GetProtocolInfo" -> Result(200, SoapResponses.getProtocolInfo())
+        "GetCurrentConnectionIDs" -> Result(200, SoapResponses.getCurrentConnectionIDs())
+        "GetCurrentConnectionInfo" -> Result(
+            200,
+            SoapResponses.getCurrentConnectionInfo(SINK_PROTOCOL_SAMPLE),
+        )
         else -> invalidAction()
+    }
+
+    private companion object {
+        /** Advertised shape of what this renderer accepts; see SoapResponses.getProtocolInfo. */
+        const val SINK_PROTOCOL_SAMPLE = "http-get:*:video/mp4:*"
     }
 }

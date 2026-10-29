@@ -28,8 +28,16 @@ class SsdpResponder(
 ) {
 
     /** All search responses owed for an inbound M-SEARCH (empty when unsupported). */
-    fun responsesFor(search: SsdpInbound.MSearch): List<ByteArray> =
-        targetsFor(search.st).map { renderResponse(it) }
+    fun responsesFor(search: SsdpInbound.MSearch): List<ByteArray> {
+        val st = search.st.trim()
+        // A UDN-targeted search must be answered with the UDN itself as ST and
+        // USN; senders that cached our identity look us up exactly this way.
+        if (st.startsWith("uuid:", ignoreCase = true)) {
+            if (!st.equals(identity.uuid, ignoreCase = true)) return emptyList()
+            return listOf(renderResponse(SsdpTarget.ROOT, stOverride = identity.uuid, usnOverride = identity.uuid))
+        }
+        return targetsFor(st).map { renderResponse(it) }
+    }
 
     fun aliveMessages(): List<ByteArray> = SsdpTarget.entries.map { renderAlive(it) }
 
@@ -49,15 +57,19 @@ class SsdpResponder(
         else -> SsdpTarget.entries.filter { it.nt == st }
     }
 
-    private fun renderResponse(target: SsdpTarget): ByteArray = buildString {
+    private fun renderResponse(
+        target: SsdpTarget,
+        stOverride: String? = null,
+        usnOverride: String? = null,
+    ): ByteArray = buildString {
         append("HTTP/1.1 200 OK\r\n")
         append("CACHE-CONTROL: max-age=${identity.maxAgeSeconds}\r\n")
         append("DATE: ${rfc1123()}\r\n")
         append("EXT:\r\n")
         append("LOCATION: ${identity.location}\r\n")
         append("SERVER: ${identity.serverToken}\r\n")
-        append("ST: ${target.nt}\r\n")
-        append("USN: ${target.usn(identity.uuid)}\r\n")
+        append("ST: ${stOverride ?: target.nt}\r\n")
+        append("USN: ${usnOverride ?: target.usn(identity.uuid)}\r\n")
         append("\r\n")
     }.toByteArray(Charsets.US_ASCII)
 

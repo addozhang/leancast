@@ -1,5 +1,6 @@
 package io.leancast.domain.upnp
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -43,9 +44,11 @@ class SoapResponsesTest {
     }
 
     @Test
-    fun `position info reports NOT_IMPLEMENTED metadata when absent`() {
+    fun `position info leaves metadata empty when absent`() {
         val xml = SoapResponses.getPositionInfo(1, 0L, 0L, null, null)
-        assertTrue(xml.contains("<TrackMetaData>NOT_IMPLEMENTED</TrackMetaData>"))
+        // Empty, not a placeholder: senders parse this field as DIDL XML.
+        assertTrue(xml.contains("<TrackMetaData></TrackMetaData>"))
+        assertFalse(xml.contains("NOT_IMPLEMENTED"))
         assertTrue(xml.contains("<RelTime>0:00:00</RelTime>"))
         assertTrue(xml.contains("<TrackDuration>0:00:00</TrackDuration>"))
     }

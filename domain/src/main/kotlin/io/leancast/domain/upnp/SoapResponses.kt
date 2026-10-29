@@ -5,15 +5,26 @@ object SoapResponses {
 
     private const val ENV = "http://schemas.xmlsoap.org/soap/envelope/"
     private const val ENC = "http://schemas.xmlsoap.org/soap/encoding/"
+    private const val CRLF = "\r\n"
 
-    private fun envelope(inner: String): String = """
-        <?xml version="1.0" encoding="utf-8"?>
-        <SOAP-ENV:Envelope xmlns:SOAP-ENV="$ENV" s:encodingStyle="$ENC">
-          <SOAP-ENV:Body>
-        $inner
-          </SOAP-ENV:Body>
-        </SOAP-ENV:Envelope>
-    """.trimIndent().replace("\n", "\r\n")
+    /**
+     * Wraps [inner] in a SOAP 1.1 envelope.
+     *
+     * Built by concatenation rather than a `"""` template: an XML declaration
+     * must start at byte 0, and any leading indentation (which `trimIndent()`
+     * does not remove once the interpolated body has zero-indent lines) makes
+     * the document unparseable for strict clients. The `s:` prefix used by
+     * `encodingStyle` must also be declared.
+     */
+    private fun envelope(inner: String): String = buildString {
+        append("<?xml version=\"1.0\" encoding=\"utf-8\"?>").append(CRLF)
+        append("<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"$ENV\" xmlns:s=\"$ENV\" s:encodingStyle=\"$ENC\">").append(CRLF)
+        append("<SOAP-ENV:Body>").append(CRLF)
+        append(inner.trim())
+        append(CRLF)
+        append("</SOAP-ENV:Body>").append(CRLF)
+        append("</SOAP-ENV:Envelope>")
+    }
 
     fun empty(action: String, service: UpnpService): String =
         envelope("<u:${action}Response xmlns:u=\"${service.serviceType}\"></u:${action}Response>")
@@ -42,7 +53,9 @@ object SoapResponses {
     ): String {
         val rel = UpnpTime.renderMsToHms(relTimeMs)
         val duration = UpnpTime.renderMsToHms(durationMs)
-        val meta = trackMetaData?.let { XmlUtil.escape(it) } ?: "NOT_IMPLEMENTED"
+        // Empty rather than "NOT_IMPLEMENTED": clients commonly feed this field
+        // straight into an XML/DIDL parser.
+        val meta = XmlUtil.escape(trackMetaData)
         return envelope(
             """
             <u:GetPositionInfoResponse xmlns:u="${UpnpService.AVT.serviceType}">
@@ -75,7 +88,7 @@ object SoapResponses {
           <NrTracks>$nrTracks</NrTracks>
           <MediaDuration>${UpnpTime.renderMsToHms(durationMs)}</MediaDuration>
           <CurrentURI>${XmlUtil.escape(currentUri)}</CurrentURI>
-          <CurrentURIMetaData>NOT_IMPLEMENTED</CurrentURIMetaData>
+          <CurrentURIMetaData></CurrentURIMetaData>
         </u:GetMediaInfoResponse>
         """.trimIndent(),
     )
@@ -115,6 +128,73 @@ object SoapResponses {
           <Source></Source>
           <Sink>$sinkProtocols</Sink>
         </u:GetProtocolInfoResponse>
+        """.trimIndent(),
+    )
+
+    fun getTransportSettings(): String = envelope(
+        """
+        <u:GetTransportSettingsResponse xmlns:u="${UpnpService.AVT.serviceType}">
+          <PlayMode>NORMAL</PlayMode>
+          <RecQualityMode>NOT_IMPLEMENTED</RecQualityMode>
+        </u:GetTransportSettingsResponse>
+        """.trimIndent(),
+    )
+
+    fun getDeviceCapabilities(): String = envelope(
+        """
+        <u:GetDeviceCapabilitiesResponse xmlns:u="${UpnpService.AVT.serviceType}">
+          <PlayMedia>NETWORK,NONE</PlayMedia>
+          <RecMedia>NOT_IMPLEMENTED</RecMedia>
+          <RecQualityModes>NOT_IMPLEMENTED</RecQualityModes>
+        </u:GetDeviceCapabilitiesResponse>
+        """.trimIndent(),
+    )
+
+    /** [actions] is a comma-separated subset of `Play,Pause,Stop,Seek`. */
+    fun getCurrentTransportActions(actions: String): String = envelope(
+        """
+        <u:GetCurrentTransportActionsResponse xmlns:u="${UpnpService.AVT.serviceType}">
+          <Actions>$actions</Actions>
+        </u:GetCurrentTransportActionsResponse>
+        """.trimIndent(),
+    )
+
+    fun getCurrentConnectionIDs(ids: String = "0"): String = envelope(
+        """
+        <u:GetCurrentConnectionIDsResponse xmlns:u="${UpnpService.CM.serviceType}">
+          <ConnectionIDs>$ids</ConnectionIDs>
+        </u:GetCurrentConnectionIDsResponse>
+        """.trimIndent(),
+    )
+
+    fun getCurrentConnectionInfo(protocolInfo: String): String = envelope(
+        """
+        <u:GetCurrentConnectionInfoResponse xmlns:u="${UpnpService.CM.serviceType}">
+          <RcsID>0</RcsID>
+          <AVTransportID>0</AVTransportID>
+          <ProtocolInfo>${XmlUtil.escape(protocolInfo)}</ProtocolInfo>
+          <PeerConnectionManager></PeerConnectionManager>
+          <PeerConnectionID>-1</PeerConnectionID>
+          <Direction>Input</Direction>
+          <Status>OK</Status>
+        </u:GetCurrentConnectionInfoResponse>
+        """.trimIndent(),
+    )
+
+    fun listPresets(): String = envelope(
+        """
+        <u:ListPresetsResponse xmlns:u="${UpnpService.RCS.serviceType}">
+          <CurrentPresetNameList>FactoryDefaults</CurrentPresetNameList>
+        </u:ListPresetsResponse>
+        """.trimIndent(),
+    )
+
+    fun getVolumeDbRange(): String = envelope(
+        """
+        <u:GetVolumeDBRangeResponse xmlns:u="${UpnpService.RCS.serviceType}">
+          <MinValue>-32768</MinValue>
+          <MaxValue>32767</MaxValue>
+        </u:GetVolumeDBRangeResponse>
         """.trimIndent(),
     )
 }
