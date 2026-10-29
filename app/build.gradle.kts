@@ -5,7 +5,8 @@ plugins {
     kotlin("android")
 }
 
-// CI injects these from the pushed git tag (v1.2.3 -> VERSION_NAME=1.2.3).
+// CI injects these from the pushed git tag (v1.2.3 -> VERSION_NAME=1.2.3, VERSION_CODE=<run#>).
+// The fallbacks track the latest release so local builds report the same version.
 val ciVersionName: String? = System.getenv("VERSION_NAME")
 val ciVersionCode: Int? = System.getenv("VERSION_CODE")?.toIntOrNull()
 val keystoreB64: String? = System.getenv("KEYSTORE_BASE64")
@@ -18,8 +19,8 @@ android {
         applicationId = "io.leancast"
         minSdk = 21
         targetSdk = 28
-        versionCode = ciVersionCode ?: 1
-        versionName = ciVersionName ?: "0.1.0"
+        versionCode = ciVersionCode ?: 5
+        versionName = ciVersionName ?: "0.2.2"
     }
 
     signingConfigs {
