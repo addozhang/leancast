@@ -32,7 +32,8 @@ Phone app --SSDP--> discovers  Phone app --SOAP SetAVTransportURI--> LeanCast
   analytics, zero non-LAN network calls; pure-Kotlin APK with **no native
   libs** — one artifact runs on `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`.
 - **Nothing hardcoded**: the cast name defaults to `LeanCast` and is
-  user-renamable; UUID persists across reboots; UI language switchable between
+  user-renamable; UUID is derived from the device id, so it survives reboots
+  **and reinstalls**; UI language switchable between
   简体中文 and English.
 - Tested on an Amazon Fire TV (Fire OS 7 / Android 9, 32-bit MTK SoC) with
   `minSdk 21` / `targetSdk 28`.

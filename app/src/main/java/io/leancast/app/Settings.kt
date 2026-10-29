@@ -2,6 +2,8 @@ package io.leancast.app
 
 import android.content.Context
 import android.content.res.Configuration
+import android.provider.Settings as AndroidSettings
+import io.leancast.domain.ssdp.DeviceUuid
 import java.util.Locale
 import java.util.UUID
 
@@ -10,15 +12,25 @@ class Settings(private val appContext: Context) {
 
     private val prefs = appContext.getSharedPreferences("receiver", Context.MODE_PRIVATE)
 
-    /** UDN value with `uuid:` prefix, generated once and stable across restarts. */
+    /**
+     * UDN value with `uuid:` prefix.
+     *
+     * Derived from the platform `ANDROID_ID` rather than random, so a reinstall
+     * (which wipes this prefs file) keeps the same identity instead of showing
+     * up as a new device in cast lists. Falls back to a random UUID on devices
+     * that report no usable id.
+     */
     fun uuid(): String {
-        var value = prefs.getString(KEY_UUID, null)
-        if (value == null) {
-            value = "uuid:${UUID.randomUUID()}"
-            prefs.edit().putString(KEY_UUID, value).apply()
-        }
+        prefs.getString(KEY_UUID, null)?.let { return it }
+        val value = DeviceUuid.derive(androidId()) ?: "uuid:${UUID.randomUUID()}"
+        prefs.edit().putString(KEY_UUID, value).apply()
         return value
     }
+
+    /** `ANDROID_ID`: no permission needed, stable across reinstalls on API 26+. */
+    private fun androidId(): String? = runCatching {
+        AndroidSettings.Secure.getString(appContext.contentResolver, AndroidSettings.Secure.ANDROID_ID)
+    }.getOrNull()
 
     /** Friendly name shown in cast lists; defaults to `@string/app_name` ("LeanCast"). */
     fun friendlyName(): String {
