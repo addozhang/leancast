@@ -3,8 +3,8 @@
 English | [简体中文](README.zh-CN.md)
 
 <p align="center">
-  <img src="docs/screenshots/main-en.png" width="49%" alt="LeanCast TV dashboard" />
-  <img src="docs/screenshots/player-osd-en.png" width="49%" alt="LeanCast playback OSD" />
+  <img src="docs/screenshots/main-en.png?v=2" width="49%" alt="LeanCast TV dashboard" />
+  <img src="docs/screenshots/player-osd-en.png?v=2" width="49%" alt="LeanCast playback OSD" />
 </p>
 
 A minimal, ad-free **DLNA/UPnP cast receiver** for Android TV. Open any video app

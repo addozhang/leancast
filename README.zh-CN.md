@@ -3,8 +3,8 @@
 [English](README.md) | 简体中文
 
 <p align="center">
-  <img src="docs/screenshots/main-zh.png" width="49%" alt="LeanCast 电视主界面" />
-  <img src="docs/screenshots/player-osd-zh.png" width="49%" alt="LeanCast 播放 OSD" />
+  <img src="docs/screenshots/main-zh.png?v=2" width="49%" alt="LeanCast 电视主界面" />
+  <img src="docs/screenshots/player-osd-zh.png?v=2" width="49%" alt="LeanCast 播放 OSD" />
 </p>
 
 一个极简、无广告的 Android TV **DLNA/UPnP 投屏接收器**。在任意带投屏按钮的视频 App（B站、爱奇艺、腾讯视频、优酷、夸克等）中点击 [TV]，选择本机即可全屏硬解播放——没有广告、无需账号、不连云端。
