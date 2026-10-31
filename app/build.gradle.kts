@@ -19,8 +19,8 @@ android {
         applicationId = "io.leancast"
         minSdk = 21
         targetSdk = 28
-        versionCode = ciVersionCode ?: 8
-        versionName = ciVersionName ?: "0.2.5"
+        versionCode = ciVersionCode ?: 9
+        versionName = ciVersionName ?: "0.2.6"
     }
 
     signingConfigs {
