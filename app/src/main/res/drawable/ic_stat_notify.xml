@@ -1,31 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Status-bar notification glyph: solid white shapes only (Android renders
-     only the alpha channel for small notification icons). -->
+     only the alpha channel for small notification icons).
+     Matches the Concept C geometric Cast Waves + Play Prism brand mark. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- TV screen outline -->
+    <!-- Stylized Play Prism with circular lower-left cutout (r=8 around (5.5, 17.5)) -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M3,5 L17,5 A1.5,1.5 0 0 1 18.5,6.5 L18.5,15.5 A1.5,1.5 0 0 1 17,17 L3,17 A1.5,1.5 0 0 1 1.5,15.5 L1.5,6.5 A1.5,1.5 0 0 1 3,5 Z M3,6.5 L3,15.5 L17,15.5 L17,6.5 Z" />
-    <!-- Play triangle -->
+        android:pathData="M6.2,9.53 L6.2,5.4 C6.2,4.1 7.6,3.3 8.7,4.0 L19.2,10.3 C20.3,11.0 20.3,12.6 19.2,13.3 L13.45,16.75 A8.0,8.0 0 0 0 6.2,9.53 Z" />
+    <!-- Cast Origin Dot -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M7.8,8.5 L12.2,11 L7.8,13.5 Z" />
-    <!-- Stand -->
+        android:pathData="M5.5,17.5 m-1.2,0 a1.2,1.2 0 1,0 2.4,0 a1.2,1.2 0 1,0 -2.4,0" />
+    <!-- Inner Cast Wave Arc -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M8.5,18.2 L10.3,18.2 L10.3,20 L8.5,20 Z" />
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M5.5,14.3 A3.2,3.2 0 0 1 8.7,17.5" />
+    <!-- Outer Cast Wave Arc -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M11.7,18.2 L13.5,18.2 L13.5,20 L11.7,20 Z" />
-    <!-- Cast waves -->
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M19.2,12.2 A5.6,5.6 0 0 1 22.6,15.4 L21,15.4 A4,4 0 0 0 19.2,13.6 Z" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M19.2,15.5 A3,3 0 0 1 20.6,17 L19.2,17 Z" />
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M5.5,11.3 A6.2,6.2 0 0 1 11.7,17.5" />
 </vector>
