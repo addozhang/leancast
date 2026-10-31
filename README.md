@@ -26,9 +26,10 @@ Phone app --SSDP--> discovers  Phone app --SOAP SetAVTransportURI--> LeanCast
 - **Hardware decoding** via Media3/ExoPlayer: HLS (`.m3u8`), progressive MP4,
   Matroska, HTTP-FLV (best effort), HTTP↔HTTPS redirects, cleartext LAN URLs.
 - **TV-native controls & OSD**: OK = pause/resume, ◀ ▶ = seek with an
-  **escalating fast-forward ladder (10 s → 5 min while held)**, Back = exit;
-  on-screen HUD with live progress bar, media title, and seek-step feedback in
-  English or Chinese.
+  **escalating fast-forward ladder (10 s → 5 min while held)**, ▼ = cycle
+  **playback speed (0.75x / 1.0x / 1.25x / 1.5x / 2.0x)**, ▲ = reveal OSD,
+  Back = exit; on-screen HUD with live progress bar, media title, and
+  seek/speed feedback in English or Chinese.
 - **Lean & private**: lighter than the stock TV launcher (see below); zero
   analytics, zero non-LAN network calls; pure-Kotlin APK with **no native
   libs** — one artifact runs on `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`.

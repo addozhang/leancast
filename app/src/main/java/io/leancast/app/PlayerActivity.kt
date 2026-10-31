@@ -226,8 +226,21 @@ class PlayerActivity : AppCompatActivity() {
                 else session.resume()
                 true
             }
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_INFO -> {
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_INFO -> {
                 showOsdBars(persistent = session.state != TransportState.PLAYING)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if ((event?.repeatCount ?: 0) == 0 && !session.isLive()) {
+                    session.cyclePlaybackSpeed()?.let { speed ->
+                        showOsdBars(persistent = session.state != TransportState.PLAYING)
+                        showCenterMessage(
+                            mainText = "⏩  ${OsdFormatter.formatSpeed(speed)}",
+                            subText = currentClockSummary(),
+                            persistent = false,
+                        )
+                    }
+                }
                 true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {

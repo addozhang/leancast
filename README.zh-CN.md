@@ -19,7 +19,7 @@
 
 - **标准 UPnP AV `MediaRenderer:1`** — SSDP 设备发现、AVTransport / RenderingControl / ConnectionManager SOAP 控制、完整的 GENA 事件（订阅后立即推送初始 `LastChange`，之后每次状态变化推送）。
 - **硬件解码**（Media3/ExoPlayer）：HLS（`.m3u8`）、渐进式 MP4、Matroska、HTTP-FLV（尽力支持）、HTTP↔HTTPS 重定向、局域网明文地址。
-- **TV 原生操控与 OSD**：OK 键 暂停/继续，◀ ▶ 长按**阶梯加速快进（10 秒 → 5 分钟）**，返回键 退出；屏上 HUD 实时进度条、片名与快进步长反馈，支持中英文。
+- **TV 原生操控与 OSD**：OK 键 暂停/继续，◀ ▶ 长按**阶梯加速快进（10 秒 → 5 分钟）**，▼ 下键 循环切换**倍速（0.75x / 1.0x / 1.25x / 1.5x / 2.0x）**，▲ 上键 唤醒进度条，返回键 退出；屏上 HUD 实时进度条、片名与快进/倍速反馈，支持中英文。
 - **轻量且保护隐私**：比电视自带桌面还省内存（见下表）；零埋点、除局域网外零网络请求；纯 Kotlin APK **无任何原生库**——一个安装包通吃 `armeabi-v7a`、`arm64-v8a`、`x86`、`x86_64`。
 - **零硬编码**：投屏名称默认 `LeanCast`，可随时改名；UUID 由设备标识派生，重启和重装都保持不变；界面语言可在简体中文与 English 间切换。
 - 已在 Amazon Fire TV（Fire OS 7 / Android 9，32 位 MTK SoC）上实测，`minSdk 21` / `targetSdk 28`。

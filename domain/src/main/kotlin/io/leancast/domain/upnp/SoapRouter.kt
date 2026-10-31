@@ -1,6 +1,7 @@
 package io.leancast.domain.upnp
 
 import io.leancast.domain.cast.CastSession
+import io.leancast.domain.cast.PlaybackSpeedPolicy
 import io.leancast.domain.cast.TransportActions
 
 /**
@@ -37,6 +38,9 @@ class SoapRouter(private val session: CastSession) {
         }
         "Play" -> {
             session.play()
+            PlaybackSpeedPolicy.parseExplicitUpnpSpeed(args["Speed"])?.let {
+                session.setPlaybackSpeed(it)
+            }
             ok(action, UpnpService.AVT)
         }
         "Pause" -> {

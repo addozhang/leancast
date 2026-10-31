@@ -31,4 +31,13 @@ class OsdFormatterTest {
         assertEquals(250, OsdFormatter.progressPermille(30_000L, 120_000L))
         assertEquals(1000, OsdFormatter.progressPermille(150_000L, 120_000L))
     }
+
+    @Test
+    fun `formats playback speed steps`() {
+        assertEquals("0.75x", OsdFormatter.formatSpeed(0.75f))
+        assertEquals("1.0x", OsdFormatter.formatSpeed(1.0f))
+        assertEquals("1.25x", OsdFormatter.formatSpeed(1.25f))
+        assertEquals("1.5x", OsdFormatter.formatSpeed(1.5f))
+        assertEquals("2.0x", OsdFormatter.formatSpeed(2.0f))
+    }
 }
