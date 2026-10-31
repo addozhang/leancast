@@ -43,4 +43,16 @@ object OsdFormatter {
         val ratio = (positionMs.coerceAtLeast(0L) * 1000L) / durationMs
         return ratio.toInt().coerceIn(0, 1000)
     }
+
+    /**
+     * Renders a playback speed multiplier as `0.75x`, `1.0x`, `1.25x`, `1.5x`, `2.0x`.
+     */
+    fun formatSpeed(speed: Float): String {
+        val scaled = kotlin.math.round(speed * 100f).toInt()
+        return if (scaled % 10 == 0) {
+            "%.1fx".format(java.util.Locale.US, scaled / 100.0)
+        } else {
+            "%.2fx".format(java.util.Locale.US, scaled / 100.0)
+        }
+    }
 }

@@ -64,3 +64,19 @@ Holding the seek keys SHALL increase the jump distance in steps: the first press
 - **WHEN** KEYCODE_MEDIA_FAST_FORWARD or KEYCODE_MEDIA_REWIND is pressed
 - **THEN** the player seeks forward/backward using the same escalating schedule
 
+### Requirement: Playback speed cycling on VOD streams
+While playing or paused on a non-live (VOD) stream, pressing `DPAD_DOWN` (initial press, ignoring key repeats) SHALL cycle the playback speed through `1.0x → 1.25x → 1.5x → 2.0x → 0.75x → 1.0x` with pitch-corrected audio, displaying the newly selected speed on the HUD center pill. `DPAD_UP` SHALL remain a side-effect-free key to reveal the OSD progress bar. Starting a new media item via `SetAVTransportURI` SHALL reset the playback speed to `1.0x`. On live streams, `DPAD_DOWN` SHALL NOT change the playback speed.
+
+#### Scenario: Down key cycles playback speed
+- **WHEN** a VOD stream is playing at `1.0x` and `DPAD_DOWN` is pressed 5 times
+- **THEN** the playback speed advances through `1.25x`, `1.5x`, `2.0x`, `0.75x`, and back to `1.0x`
+
+#### Scenario: New cast resets playback speed
+- **WHEN** playback speed has been set to `1.5x` and a new `SetAVTransportURI` action arrives
+- **THEN** the playback speed resets to `1.0x`
+
+#### Scenario: Live stream ignores speed cycling
+- **WHEN** the active stream is live and `DPAD_DOWN` is pressed
+- **THEN** the playback speed remains `1.0x`
+
+

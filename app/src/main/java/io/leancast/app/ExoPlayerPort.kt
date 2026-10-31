@@ -65,9 +65,14 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
                         .Factory(dataSources()).createMediaSource(item)
             }
             p.setMediaSource(source)
+            p.setPlaybackSpeed(session?.playbackSpeed ?: 1.0f)
             p.prepare()
             p.playWhenReady = true
         }
+    }
+
+    override fun setPlaybackSpeed(speed: Float) {
+        main.post { player?.setPlaybackSpeed(speed) }
     }
 
     override fun play() {

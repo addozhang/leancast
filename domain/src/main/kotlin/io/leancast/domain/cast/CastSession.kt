@@ -21,6 +21,9 @@ interface PlayerPort {
      * the session reports them differently (see [CastSession.durationMs]).
      */
     fun isLive(): Boolean = false
+
+    /** Applies [speed] (e.g. `0.75f`..`2.0f`) with pitch correction enabled. */
+    fun setPlaybackSpeed(speed: Float) = Unit
 }
 
 /** Notified when the UPnP-visible volume changes (0..100). */
@@ -54,6 +57,8 @@ class CastSession(
         private set
     var volume: Int = 100
         private set
+    var playbackSpeed: Float = PlaybackSpeedPolicy.DEFAULT_SPEED
+        private set
 
     /** Live-only: wall-clock time spent playing, with paused intervals excluded. */
     private var elapsedAccumulatedMs = 0L
@@ -82,6 +87,7 @@ class CastSession(
         currentUri = uri?.takeIf { it.isNotBlank() }
         currentMetaData = currentUri?.let { metaData }
         currentTitle = currentMetaData?.let { DidlParser.extractTitle(it) }
+        resetPlaybackSpeed()
         resetElapsed()
         enter(TransportState.NO_MEDIA_PRESENT)
     }
@@ -146,8 +152,49 @@ class CastSession(
         }
     }
 
+    /**
+     * Cycles to the next playback speed in [PlaybackSpeedPolicy.STEPS] when VOD
+     * media is active; returns the new speed, or `null` when ignored (live or idle).
+     */
+    fun cyclePlaybackSpeed(): Float? {
+        if (!canAdjustSpeed()) return null
+        val next = PlaybackSpeedPolicy.nextSpeed(playbackSpeed)
+        playbackSpeed = next
+        port.setPlaybackSpeed(next)
+        return next
+    }
+
+    /**
+     * Applies an explicit supported speed (e.g. from a UPnP `Play` action with
+     * a non-default `Speed` argument). Ignored for live streams or unsupported values.
+     */
+    fun setPlaybackSpeed(speed: Float): Boolean {
+        if (!canAdjustSpeed()) return false
+        val matched = PlaybackSpeedPolicy.STEPS.firstOrNull { kotlin.math.abs(it - speed) < 0.001f }
+            ?: return false
+        playbackSpeed = matched
+        port.setPlaybackSpeed(matched)
+        return true
+    }
+
+    private fun canAdjustSpeed(): Boolean {
+        if (isLive()) return false
+        return when (state) {
+            TransportState.PLAYING, TransportState.PAUSED_PLAYBACK, TransportState.TRANSITIONING -> true
+            else -> false
+        }
+    }
+
+    private fun resetPlaybackSpeed() {
+        playbackSpeed = PlaybackSpeedPolicy.DEFAULT_SPEED
+        port.setPlaybackSpeed(PlaybackSpeedPolicy.DEFAULT_SPEED)
+    }
+
     /** Player callback: media prepared and rendering; duration now known. */
     fun onPlayerPrepared() {
+        if (isLive() && playbackSpeed != PlaybackSpeedPolicy.DEFAULT_SPEED) {
+            resetPlaybackSpeed()
+        }
         if (state == TransportState.TRANSITIONING) enter(TransportState.PLAYING)
     }
 
