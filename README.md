@@ -2,6 +2,8 @@
 
 English | [简体中文](README.zh-CN.md)
 
+**[Download APK](https://github.com/addozhang/leancast/releases/latest) · [Supported devices](#supported-devices) · [Report device compatibility](https://github.com/addozhang/leancast/issues/new?template=device-compatibility.yml)**
+
 <p align="center">
   <img src="docs/screenshots/main-en.png?v=2" width="49%" alt="LeanCast TV dashboard" />
   <img src="docs/screenshots/player-osd-en.png?v=2" width="49%" alt="LeanCast playback OSD" />
@@ -40,27 +42,6 @@ Phone app --SSDP--> discovers  Phone app --SOAP SetAVTransportURI--> LeanCast
 - Tested on an Amazon Fire TV (Fire OS 7 / Android 9, 32-bit MTK SoC) with
   `minSdk 21` / `targetSdk 28`.
 
-## Build
-
-Requirements: JDK 17+, Android SDK (platform 34). Then:
-
-```bash
-./gradlew assembleDebug
-# app/build/outputs/apk/debug/app-debug.apk
-```
-
-## Install & use
-
-```bash
-adb connect <TV-IP>:5555
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n io.leancast/io.leancast.app.MainActivity
-```
-
-Launch the app once to start the receiver service; it then appears in every
-DLNA sender's device list under the receiver name (rename it in the app).
-Optional: enable **Start on boot** in the app.
-
 ## Supported devices
 
 LeanCast is a pure-Kotlin APK with **no native libraries** and `minSdk 21`
@@ -71,7 +52,7 @@ on newer boxes.
 
 | Tier | Devices | Notes |
 | :--- | :--- | :--- |
-| ✅ Verified | Amazon Fire TV / Fire TV Stick (Fire OS 6/7) | Primary test device: Fire OS 7.7, 32-bit MTK SoC |
+| ✅ Tested hardware | Amazon Fire TV (see verified-device list below) | Primary test device: Fire OS 7.7, 32-bit MTK SoC; other models need individual reports |
 | ✅ Expected | Certified Android TV / Google TV (Sony, TCL, Philips, Chromecast w/ Google TV), NVIDIA Shield, Amlogic / Rockchip boxes, Xiaomi international boxes | Sideload and go |
 | ⚠️ Experimental | CN smart TVs with sideloading (MIUI TV / PatchWall, Coocaa, Hisense Android models), Tmall boxes (YunOS) | Enable "unknown sources"; report results via the compatibility issue template |
 | ❌ Unsupported | Samsung (Tizen), LG (webOS), Huawei Vision (HarmonyOS), non-smart TVs | No Android app runtime — use any TV box from the ✅ tiers |
@@ -79,8 +60,48 @@ on newer boxes.
 Notes:
 - Phone "system cast" (Miracast) is out of scope — LeanCast is a DLNA/UPnP
   receiver, so use the `[TV]` button inside video apps.
-- Tested an unlisted device? Open a **Device compatibility report** issue and
-  help grow the matrix.
+- Brand alone does not establish compatibility: operating systems vary by model and region. Native Tizen, webOS, Roku OS, VIDAA and other non-Android systems cannot run this APK; an external Android TV box can be used instead.
+
+### Verified devices
+
+These are specific developer or community test reports, not guarantees for every model from a brand. Unreported versions are left unknown; testing a feature does not imply every feature or sender app was tested.
+
+| Brand / model | OS / firmware | Android | LeanCast tested | Test scope | Report / contributor |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Amazon Fire TV (exact model not recorded) | Fire OS 7.7 | 9 | Version not recorded | Developer playback / resource-usage testing | [@addozhang](https://github.com/addozhang) |
+| Sony KD-55X9000H | Android TV; firmware not reported | Not reported | 0.2.5 / 0.2.6; speed branch `11ff197` | iQiyi / Youku casting reported; speed build tested successfully | [Issue #1](https://github.com/addozhang/leancast/issues/1), [@LabiKyo](https://github.com/LabiKyo) |
+
+**Does LeanCast work on your TV, box or projector?** [Submit a device compatibility report](https://github.com/addozhang/leancast/issues/new?template=device-compatibility.yml). The bilingual form includes major brands and OS families; unknown firmware / Android versions are optional, and unsuccessful results are welcome too. If you use an external box, report the box running LeanCast. Reviewed reports will be added here with contributor credit.
+
+## Install & use
+
+1. Download the latest `LeanCast-<version>.apk` from [GitHub Releases](https://github.com/addozhang/leancast/releases/latest); building from source is optional.
+2. Allow installation from unknown sources on your TV / box, install the APK, and open LeanCast.
+3. Connect your phone and receiver to the same LAN. Tap `[TV]` inside a video app and select LeanCast.
+
+You can rename the receiver, switch UI language, and enable **Start on boot** in the app.
+
+### Remote controls
+
+| Key | Action |
+| :--- | :--- |
+| OK | Pause / resume |
+| Left / Right | Seek on VOD; hold for escalating steps (10 s → 5 min) |
+| Down | Cycle VOD speed: 1.0x → 1.25x → 1.5x → 2.0x → 0.75x → 1.0x |
+| Up | Reveal time / progress without changing playback |
+| Back | Stop and exit playback |
+
+Seeking and speed changes are disabled on live streams. Each new cast resets speed to 1.0x.
+
+### Optional: install via ADB
+
+Enable network debugging on the receiver, then run on your computer (use the port shown by your device):
+
+```bash
+adb connect <TV-IP>:5555
+adb install -r LeanCast-<version>.apk
+adb shell am start -n io.leancast/io.leancast.app.MainActivity
+```
 
 ## Resource usage
 
@@ -93,6 +114,41 @@ waiting on the dashboard:
 | Casting 1080p | ≈ 74 MB | ~4–5% of total (decode is hardware) | — |
 
 Lighter than the stock Fire TV launcher (83 MB PSS) on the same device.
+
+## Build
+
+Requirements: JDK 17+, Android SDK (platform 34). Then:
+
+```bash
+./gradlew assembleDebug
+# app/build/outputs/apk/debug/app-debug.apk
+```
+
+## Project layout
+
+```
+domain/          Pure-Kotlin protocol core (JVM-unit-tested, 90 tests)
+  ssdp/          M-SEARCH parsing, target matching, USN, alive/byebye, MX delays
+  upnp/          Device description + SCPDs, SOAP parser (prefix-tolerant DIDL),
+                 response envelopes & faults, H:MM:SS time math, SOAP router
+  cast/          AVTransport state machine, player port, volume math
+app/             Android shell (thin adapters, E2E-verified on device)
+  ControlServer  Minimal HTTP/1.1 server: /desc.xml, /scpd/*, /ctl/*, /evt/*
+  SsdpAgent      Multicast UDP listener + advertiser (MulticastLock held)
+  ExoPlayerPort  PlayerPort adapter (main-thread marshalled, cached position)
+  ReceiverService Foreground service assembling everything
+tools/
+  e2e_control_point.py  Scripted UPnP control point for device E2E runs
+openspec/        Spec-driven development artifacts (proposal/specs/design/tasks)
+```
+
+Development follows **OpenSpec** (`openspec/`) with strict TDD: every spec
+scenario maps to unit tests in `domain`; run them with `./gradlew :domain:test`.
+End-to-end verification drives a real device from a dev box:
+
+```bash
+python3 tools/e2e_control_point.py http://<lan-host>/video.mp4
+```
 
 ## Releases & CI
 
@@ -131,32 +187,6 @@ signs with it. Generate a keystore once with:
 ```bash
 keytool -genkeypair -v -keystore release.keystore -alias leancast \
   -keyalg RSA -keysize 2048 -validity 10000
-```
-
-## Project layout
-
-```
-domain/          Pure-Kotlin protocol core (JVM-unit-tested, 90 tests)
-  ssdp/          M-SEARCH parsing, target matching, USN, alive/byebye, MX delays
-  upnp/          Device description + SCPDs, SOAP parser (prefix-tolerant DIDL),
-                 response envelopes & faults, H:MM:SS time math, SOAP router
-  cast/          AVTransport state machine, player port, volume math
-app/             Android shell (thin adapters, E2E-verified on device)
-  ControlServer  Minimal HTTP/1.1 server: /desc.xml, /scpd/*, /ctl/*, /evt/*
-  SsdpAgent      Multicast UDP listener + advertiser (MulticastLock held)
-  ExoPlayerPort  PlayerPort adapter (main-thread marshalled, cached position)
-  ReceiverService Foreground service assembling everything
-tools/
-  e2e_control_point.py  Scripted UPnP control point for device E2E runs
-openspec/        Spec-driven development artifacts (proposal/specs/design/tasks)
-```
-
-Development follows **OpenSpec** (`openspec/`) with strict TDD: every spec
-scenario maps to unit tests in `domain`; run them with `./gradlew :domain:test`.
-End-to-end verification drives a real device from a dev box:
-
-```bash
-python3 tools/e2e_control_point.py http://<lan-host>/video.mp4
 ```
 
 ## License

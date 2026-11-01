@@ -1,88 +1,180 @@
-name: Device compatibility report
-description: Report LeanCast working (or not) on a specific TV / box
-title: "[Compat] <device model> — <result>"
+name: 设备兼容性报告 / Device compatibility report
+description: 分享电视、盒子或投影的实测结果 / Share results from your TV, box or projector
+title: "[Compat] <brand / model> — <result>"
 labels: ["compatibility"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping build the LeanCast compatibility matrix!
-        Everything you fill in here goes straight into the
-        [supported devices table](../#supported-devices) in the README.
+        感谢帮助完善 LeanCast 真机实测名录！成功和失败的结果都欢迎提交。
+        Thanks for helping build the verified-device list! Both working and failing results are welcome.
+        品牌不等于系统：同一品牌不同地区或型号可能采用不同系统，请按设备实际信息填写；不知道的项目可以选“不清楚”。
+        A brand may use different operating systems across models and regions. Report your actual device; unknown fields are fine.
+        表单选项不代表兼容承诺。LeanCast 需要 Android 应用运行环境（Android 5.0+）。
+        These options are not compatibility claims. LeanCast requires an Android app runtime (Android 5.0+).
+        请勿提交序列号、MAC 地址或其他个人信息。审核后我们会将实测信息和贡献者链接加入 README。
+        Do not include serial numbers, MAC addresses or personal information. Reviewed reports may be added to the README with contributor credit.
+
+  - type: dropdown
+    id: brand
+    attributes:
+      label: 品牌 / Brand
+      options:
+        - Samsung / 三星
+        - LG
+        - Sony / 索尼
+        - TCL
+        - Hisense / 海信
+        - Xiaomi / Redmi / 小米 / 红米
+        - Skyworth / Coocaa / 创维 / 酷开
+        - FFALCON / 雷鸟
+        - Changhong / 长虹
+        - Konka / 康佳
+        - Haier / Casarte / 海尔 / 卡萨帝
+        - Huawei / 华为
+        - Honor / 荣耀
+        - Philips / 飞利浦
+        - Panasonic / 松下
+        - Sharp / 夏普
+        - Toshiba / 东芝
+        - Vizio
+        - Roku
+        - Amazon / Fire TV
+        - Google / Chromecast
+        - NVIDIA / Shield
+        - Onn / Walmart
+        - Tmall / 天猫魔盒
+        - Dangbei / 当贝
+        - Zidoo / 芝杜
+        - Dune HD
+        - XGIMI / 极米
+        - JMGO / 坚果
+        - Formovie / 峰米
+        - Epson / 爱普生
+        - BenQ / 明基
+        - Amlogic / Rockchip / Allwinner OEM box / 外贸盒子
+        - Other / 其他（请在型号中注明 / Specify in model）
+    validations:
+      required: true
 
   - type: input
     id: device
     attributes:
-      label: Device model
-      description: e.g. Amazon Fire TV Stick 4K, Xiaomi TV ES55, Sony X90J, H96 Max X2
-      placeholder: Amazon Fire TV Stick 4K
+      label: 具体型号 / Exact model
+      description: 例如 Sony KD-55X9000H、Fire TV Stick 4K（请注明代数）；电视连接外置盒子时填写运行 LeanCast 的盒子型号。 / Include generation; if using an external box, report the box running LeanCast.
+      placeholder: Sony KD-55X9000H
     validations:
       required: true
+
+  - type: input
+    id: region
+    attributes:
+      label: 销售地区 / Sales region (optional)
+      description: 同一型号不同地区可能采用不同系统。 / The OS may vary by region.
+      placeholder: 中国大陆 / Europe / US
 
   - type: dropdown
     id: os
     attributes:
-      label: OS family
+      label: 系统类型 / OS family
       options:
-        - Fire OS
-        - Android TV / Google TV
-        - MIUI TV / PatchWall (Xiaomi CN)
-        - Generic AOSP box (Amlogic / Rockchip)
-        - Other (describe below)
+        - Android TV
+        - Google TV
+        - Fire OS (Android-based)
+        - MIUI TV / HyperOS / PatchWall（请补充实际系统 / Specify actual OS）
+        - Coocaa OS / 酷开系统
+        - Hisense Android / 聚好看（安卓机型 / Android models）
+        - VIDAA
+        - Roku OS
+        - Tizen
+        - webOS
+        - HarmonyOS / 鸿蒙
+        - Titan OS
+        - SAPHI
+        - My Home Screen
+        - Vizio SmartCast / Vizio Home
+        - YunOS / AliOS
+        - Dangbei OS / 当贝 OS
+        - Zidoo Android / 芝杜安卓系统
+        - XGIMI INUI / GMUI / 极米系统
+        - JMGO OS / 坚果系统
+        - FengOS / 峰米系统
+        - Generic Android / AOSP / 其他安卓定制系统
+        - Other / 其他（请在详情中注明 / Specify in details）
+        - Unknown / 不清楚
     validations:
       required: true
+
+  - type: input
+    id: firmware-version
+    attributes:
+      label: 系统 / 固件版本 / OS or firmware version (optional)
+      description: 从设置中的“关于 / 系统信息”查看，不清楚可留空。 / Check Settings → About; leave blank if unknown.
+      placeholder: Fire OS 7.7.x / firmware build number
 
   - type: input
     id: android-version
     attributes:
-      label: Android version
-      description: From device Info / `adb shell getprop ro.build.version.release`
-      placeholder: "9"
-    validations:
-      required: true
+      label: Android 版本 / Android version (optional)
+      description: 不清楚可留空，无需 ADB。 / Leave blank if unknown; ADB is not required.
+      placeholder: "9 / 11 / 12"
 
   - type: input
     id: app-version
     attributes:
-      label: LeanCast version
-      description: From app Info / device description endpoint
-      placeholder: 0.2.0
+      label: LeanCast 版本 / LeanCast version
+      description: 填写安装包或下载页面标注的版本；自编译请注明分支或 commit。 / Use the APK or download version; for custom builds include branch or commit.
+      placeholder: "0.2.7 / commit 11ff197"
     validations:
       required: true
 
   - type: dropdown
     id: sender
     attributes:
-      label: Sender app used
+      label: 实测发送端 App / Sender apps tested
+      multiple: true
       options:
-        - Bilibili
-        - Tencent Video
-        - Youku
-        - iQiyi
-        - CCTV (央视频)
-        - Quark
-        - Multiple / Other (describe below)
+        - Bilibili / 哔哩哔哩
+        - iQiyi / 爱奇艺
+        - Youku / 优酷
+        - Tencent Video / 腾讯视频
+        - CCTV / 央视频
+        - Quark / 夸克
+        - VLC
+        - BubbleUPnP
+        - Other / 其他（请在详情中注明 / Specify in details）
+        - Not tested / 尚未测试投屏
     validations:
       required: true
 
   - type: dropdown
     id: status
     attributes:
-      label: Result
+      label: 实测结果 / Result
       options:
-        - ✅ Works
-        - 🟡 Works with issues
-        - 🔍 Not discovered by sender
-        - 📺 Discovers but no picture / no sound
-        - 💥 Crashes
+        - Works / 正常投屏播放
+        - Works with issues / 可以使用但有问题
+        - Not discovered / 发送端无法发现设备
+        - No picture or sound / 发现设备但无画面或声音
+        - Crashes / 崩溃
+        - Cannot install / 无法安装 APK
     validations:
       required: true
+
+  - type: checkboxes
+    id: tested-features
+    attributes:
+      label: 已测试功能 / Features tested (optional)
+      description: 只勾选实际测试通过的功能，不代表全部功能已验证。 / Select only features you actually tested successfully.
+      options:
+        - label: Video and audio / 画面与声音
+        - label: Pause and resume / 暂停与继续
+        - label: Seek on VOD / 点播快进快退
+        - label: Playback speed on VOD / 点播倍速
+        - label: Live playback / 直播播放
 
   - type: textarea
     id: details
     attributes:
-      label: Details
-      description: |
-        What happened? What worked and what didn't?
-        `adb logcat -d` output right after the failure is extremely helpful
-        (look for the `LeanCastPlayer` tag).
+      label: 补充说明 / Details (optional)
+      description: 可填写其他品牌或系统、App 版本、失败现象或截图。日志请先删除隐私信息，播放器日志标签为 LeanCastPlayer。 / Include other brands or systems, app versions, symptoms or screenshots. Redact personal data from logs; player log tag is LeanCastPlayer.

@@ -2,6 +2,8 @@
 
 [English](README.md) | 简体中文
 
+**[下载 APK](https://github.com/addozhang/leancast/releases/latest) · [支持的设备](#支持的设备) · [报告设备兼容性](https://github.com/addozhang/leancast/issues/new?template=device-compatibility.yml)**
+
 <p align="center">
   <img src="docs/screenshots/main-zh.png?v=2" width="49%" alt="LeanCast 电视主界面" />
   <img src="docs/screenshots/player-osd-zh.png?v=2" width="49%" alt="LeanCast 播放 OSD" />
@@ -24,39 +26,61 @@
 - **零硬编码**：投屏名称默认 `LeanCast`，可随时改名；UUID 由设备标识派生，重启和重装都保持不变；界面语言可在简体中文与 English 间切换。
 - 已在 Amazon Fire TV（Fire OS 7 / Android 9，32 位 MTK SoC）上实测，`minSdk 21` / `targetSdk 28`。
 
-## 构建
-
-要求：JDK 17+、Android SDK（platform 34）。
-
-```bash
-./gradlew assembleDebug
-# app/build/outputs/apk/debug/app-debug.apk
-```
-
-## 安装与使用
-
-```bash
-adb connect <TV-IP>:5555
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n io.leancast/io.leancast.app.MainActivity
-```
-
-打开一次应用即可启动接收服务，之后手机视频 App 的投屏设备列表中会出现本机（可在应用内改名）。可选：在应用内开启「开机自动启动」。
-
 ## 支持的设备
 
 LeanCast 是**无原生库**的纯 Kotlin APK，`minSdk 21`（Android 5.0，2014 年），一个安装包覆盖 `armeabi-v7a`、`arm64-v8a`、`x86`、`x86_64`。解码使用设备自身的 `MediaCodec`，因此编解码能力跟随设备：H.264 全员支持，HEVC/4K 需 2016 年后的电视，AV1 仅较新的盒子支持。
 
 | 层级 | 设备 | 说明 |
 | :--- | :--- | :--- |
-| ✅ 已验证 | Amazon Fire TV / Fire TV Stick（Fire OS 6/7） | 主要测试设备：Fire OS 7.7，32 位 MTK SoC |
+| ✅ 实测设备 | Amazon Fire TV（见下方实测名录） | 主要测试设备：Fire OS 7.7，32 位 MTK SoC；其他型号需单独验证 |
 | ✅ 预期兼容 | 认证 Android TV / Google TV（索尼、TCL、飞利浦、Chromecast w/ Google TV）、NVIDIA Shield、Amlogic / Rockchip 方案盒子、小米国际版盒子 | 装上即用 |
 | ⚠️ 实验性 | 支持安装第三方应用的国产智能电视（MIUI TV / PatchWall、酷开、海信安卓机型）、天猫魔盒（YunOS） | 需开启「未知来源安装」；欢迎通过兼容性 Issue 反馈结果 |
 | ❌ 不支持 | 三星（Tizen）、LG（webOS）、华为智慧屏（HarmonyOS）、非智能电视 | 无 Android 应用运行时——请搭配 ✅ 层级的电视盒子 |
 
 说明：
 - 手机「系统投屏」（Miracast）不在本项目范畴——LeanCast 是 DLNA/UPnP 接收器，请在视频 App 内使用 `[TV]` 按钮。
-- 实测了列表之外的设备？欢迎提交 **Device compatibility report** Issue，一起完善支持矩阵。
+- 不能仅凭品牌判断兼容性：同一品牌不同型号、地区可能采用不同系统。原生 Tizen、webOS、Roku OS、VIDAA 等非 Android 系统不能运行此 APK，可搭配外置 Android TV 盒子使用。
+
+### 已验证设备名录
+
+以下为开发者或社区的具体实测记录，不代表同品牌所有型号均兼容。未提供的版本标为未知；某项功能测试通过不代表所有功能和发送端 App 都已验证。
+
+| 品牌 / 型号 | 系统 / 固件 | Android 版本 | 已测试 LeanCast 版本 | 实测范围 | 来源 / 验证者 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Amazon Fire TV（具体型号未记录） | Fire OS 7.7 | 9 | 未记录 | 开发者播放与资源占用实测 | [@addozhang](https://github.com/addozhang) |
+| Sony KD-55X9000H | Android TV；固件未提供 | 未提供 | 0.2.5 / 0.2.6；倍速分支 `11ff197` | 报告使用爱奇艺 / 优酷投屏；倍速测试版反馈正常 | [Issue #1](https://github.com/addozhang/leancast/issues/1)、[@LabiKyo](https://github.com/LabiKyo) |
+
+**你的电视、盒子或投影也能用？** 欢迎[提交设备兼容性报告](https://github.com/addozhang/leancast/issues/new?template=device-compatibility.yml)，帮助更多用户选择设备！中英双语表单提供主流品牌与系统选项，固件 / Android 版本不知道可留空，失败结果也欢迎反馈。使用外置盒子时，请填写实际运行 LeanCast 的盒子信息。审核后我们会将实测信息及贡献者链接加入名录。
+
+## 安装与使用
+
+1. 从 [GitHub Releases](https://github.com/addozhang/leancast/releases/latest) 下载最新的 `LeanCast-<版本号>.apk`，无需自行编译。
+2. 在电视 / 盒子上允许安装未知来源应用，安装 APK 并打开 LeanCast。
+3. 确保手机和接收设备处于同一局域网，在视频 App 内点击 `[TV]`，选择 LeanCast。
+
+可在应用中修改投屏名称、切换中英文，并开启「开机自动启动」。
+
+### 遥控器操作
+
+| 按键 | 功能 |
+| :--- | :--- |
+| 确定键 | 暂停 / 继续 |
+| 左 / 右键 | 点播快退 / 快进，长按阶梯加速（10 秒 → 5 分钟） |
+| 下键 | 点播倍速循环：1.0x → 1.25x → 1.5x → 2.0x → 0.75x → 1.0x |
+| 上键 | 查看时间与进度，不改变播放状态 |
+| 返回键 | 停止并退出播放 |
+
+直播不支持快进快退与倍速；每次新投屏重置为 1.0x。
+
+### 可选：通过 ADB 安装
+
+开启接收设备的网络调试后，可在电脑上执行（实际端口以设备为准）：
+
+```bash
+adb connect <TV-IP>:5555
+adb install -r LeanCast-<版本号>.apk
+adb shell am start -n io.leancast/io.leancast.app.MainActivity
+```
 
 ## 资源占用
 
@@ -68,6 +92,41 @@ LeanCast 是**无原生库**的纯 Kotlin APK，`minSdk 21`（Android 5.0，2014
 | 播放 1080p | ≈ 74 MB | 全机约 4–5%（解码走硬件） | — |
 
 同一设备上比 Fire TV 自带桌面（83 MB PSS）更省。
+
+## 构建
+
+要求：JDK 17+、Android SDK（platform 34）。
+
+```bash
+./gradlew assembleDebug
+# app/build/outputs/apk/debug/app-debug.apk
+```
+
+## 项目结构
+
+```
+domain/          纯 Kotlin 协议核心（JVM 单元测试，90 个用例）
+  ssdp/          M-SEARCH 解析、目标匹配、USN、alive/byebye、MX 延迟
+  upnp/          设备描述 + SCPD、SOAP 解析器（宽容 DIDL）、响应与故障、
+                 H:MM:SS 时间换算、SOAP 路由
+  cast/          AVTransport 状态机、播放器端口、音量数学
+app/             Android 壳层（薄适配层，真机 E2E 验证）
+  ControlServer  极简 HTTP/1.1 服务：/desc.xml、/scpd/*、/ctl/*、/evt/*
+  SsdpAgent      组播 UDP 监听 + 通告（持有 MulticastLock）
+  ExoPlayerPort  PlayerPort 适配器（主线程封装、位置缓存）
+  ReceiverService  组装一切的前台服务
+tools/
+  e2e_control_point.py  脚本化 UPnP 控制点，用于真机 E2E
+openspec/        规格驱动开发产物（proposal/specs/design/tasks）
+```
+
+开发流程遵循 **OpenSpec**（`openspec/`）+ 严格 TDD：每条规格场景都映射到
+`domain` 中的单元测试，运行 `./gradlew :domain:test`。端到端验证由开发机
+驱动真机完成：
+
+```bash
+python3 tools/e2e_control_point.py http://<局域网主机>/video.mp4
+```
 
 ## 版本发布与 CI
 
@@ -99,32 +158,6 @@ git push origin v0.2.0
 ```bash
 keytool -genkeypair -v -keystore release.keystore -alias leancast \
   -keyalg RSA -keysize 2048 -validity 10000
-```
-
-## 项目结构
-
-```
-domain/          纯 Kotlin 协议核心（JVM 单元测试，90 个用例）
-  ssdp/          M-SEARCH 解析、目标匹配、USN、alive/byebye、MX 延迟
-  upnp/          设备描述 + SCPD、SOAP 解析器（宽容 DIDL）、响应与故障、
-                 H:MM:SS 时间换算、SOAP 路由
-  cast/          AVTransport 状态机、播放器端口、音量数学
-app/             Android 壳层（薄适配层，真机 E2E 验证）
-  ControlServer  极简 HTTP/1.1 服务：/desc.xml、/scpd/*、/ctl/*、/evt/*
-  SsdpAgent      组播 UDP 监听 + 通告（持有 MulticastLock）
-  ExoPlayerPort  PlayerPort 适配器（主线程封装、位置缓存）
-  ReceiverService  组装一切的前台服务
-tools/
-  e2e_control_point.py  脚本化 UPnP 控制点，用于真机 E2E
-openspec/        规格驱动开发产物（proposal/specs/design/tasks）
-```
-
-开发流程遵循 **OpenSpec**（`openspec/`）+ 严格 TDD：每条规格场景都映射到
-`domain` 中的单元测试，运行 `./gradlew :domain:test`。端到端验证由开发机
-驱动真机完成：
-
-```bash
-python3 tools/e2e_control_point.py http://<局域网主机>/video.mp4
 ```
 
 ## 许可证
