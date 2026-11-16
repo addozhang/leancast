@@ -7,12 +7,21 @@ import java.net.NetworkInterface
 object Net {
 
     /** First non-loopback, site-local IPv4 address, or null when offline. */
-    fun lanIpv4(): String? = runCatching {
-        NetworkInterface.getNetworkInterfaces().asSequence()
+    fun lanIpv4(): String? = lanInterfaceAndIpv4()?.second
+
+    /**
+     * First active non-loopback [NetworkInterface] that carries a site-local
+     * IPv4 address, paired with that address's host string.
+     */
+    fun lanInterfaceAndIpv4(): Pair<NetworkInterface, String>? = runCatching {
+        val interfaces = NetworkInterface.getNetworkInterfaces() ?: return@runCatching null
+        interfaces.asSequence()
             .filter { it.isUp && !it.isLoopback }
-            .flatMap { it.inetAddresses.asSequence() }
-            .filterIsInstance<Inet4Address>()
-            .firstOrNull { it.isSiteLocalAddress }
-            ?.hostAddress
+            .firstNotNullOfOrNull { nif ->
+                val ipv4 = nif.inetAddresses.asSequence()
+                    .filterIsInstance<Inet4Address>()
+                    .firstOrNull { it.isSiteLocalAddress }
+                ipv4?.hostAddress?.let { nif to it }
+            }
     }.getOrNull()
 }

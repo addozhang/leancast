@@ -14,3 +14,4 @@ domain/build
 ci-release.keystore
 *.jks
 .workbuddy/
+.gradle-home/

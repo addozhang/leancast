@@ -25,21 +25,34 @@ enum class SsdpTarget(val nt: String) {
 class SsdpResponder(
     private val identity: SsdpIdentity,
     private val clockMs: () -> Long = System::currentTimeMillis,
+    private val locationProvider: () -> String? = { identity.location },
 ) {
 
-    /** All search responses owed for an inbound M-SEARCH (empty when unsupported). */
+    /**
+     * Resolves the current absolute device description URL, returning `null`
+     * when the device has no valid LAN IPv4 address yet (e.g. right after boot
+     * before Wi-Fi/DHCP completes) so callers never advertise `0.0.0.0`.
+     */
+    private fun activeLocation(): String? =
+        locationProvider()?.trim()?.takeIf { it.isNotEmpty() && !it.contains("://0.0.0.0") }
+
+    /** All search responses owed for an inbound M-SEARCH (empty when unsupported or offline). */
     fun responsesFor(search: SsdpInbound.MSearch): List<ByteArray> {
+        val loc = activeLocation() ?: return emptyList()
         val st = search.st.trim()
         // A UDN-targeted search must be answered with the UDN itself as ST and
         // USN; senders that cached our identity look us up exactly this way.
         if (st.startsWith("uuid:", ignoreCase = true)) {
             if (!st.equals(identity.uuid, ignoreCase = true)) return emptyList()
-            return listOf(renderResponse(SsdpTarget.ROOT, stOverride = identity.uuid, usnOverride = identity.uuid))
+            return listOf(renderResponse(SsdpTarget.ROOT, loc, stOverride = identity.uuid, usnOverride = identity.uuid))
         }
-        return targetsFor(st).map { renderResponse(it) }
+        return targetsFor(st).map { renderResponse(it, loc) }
     }
 
-    fun aliveMessages(): List<ByteArray> = SsdpTarget.entries.map { renderAlive(it) }
+    fun aliveMessages(): List<ByteArray> {
+        val loc = activeLocation() ?: return emptyList()
+        return SsdpTarget.entries.map { renderAlive(it, loc) }
+    }
 
     fun byebyeMessages(): List<ByteArray> = SsdpTarget.entries.map { renderByebye(it) }
 
@@ -59,6 +72,7 @@ class SsdpResponder(
 
     private fun renderResponse(
         target: SsdpTarget,
+        location: String,
         stOverride: String? = null,
         usnOverride: String? = null,
     ): ByteArray = buildString {
@@ -66,18 +80,18 @@ class SsdpResponder(
         append("CACHE-CONTROL: max-age=${identity.maxAgeSeconds}\r\n")
         append("DATE: ${rfc1123()}\r\n")
         append("EXT:\r\n")
-        append("LOCATION: ${identity.location}\r\n")
+        append("LOCATION: $location\r\n")
         append("SERVER: ${identity.serverToken}\r\n")
         append("ST: ${stOverride ?: target.nt}\r\n")
         append("USN: ${usnOverride ?: target.usn(identity.uuid)}\r\n")
         append("\r\n")
     }.toByteArray(Charsets.US_ASCII)
 
-    private fun renderAlive(target: SsdpTarget): ByteArray = buildString {
+    private fun renderAlive(target: SsdpTarget, location: String): ByteArray = buildString {
         append("NOTIFY * HTTP/1.1\r\n")
         append("HOST: $SSDP_HOST\r\n")
         append("CACHE-CONTROL: max-age=${identity.maxAgeSeconds}\r\n")
-        append("LOCATION: ${identity.location}\r\n")
+        append("LOCATION: $location\r\n")
         append("NT: ${target.nt}\r\n")
         append("NTS: ssdp:alive\r\n")
         append("SERVER: ${identity.serverToken}\r\n")

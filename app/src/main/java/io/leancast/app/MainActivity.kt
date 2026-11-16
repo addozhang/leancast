@@ -5,9 +5,12 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings as AndroidSettings
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
@@ -334,7 +337,11 @@ class MainActivity : AppCompatActivity() {
             pillText = "",
             accentPill = false,
             onClick = {
-                settings.autostart = !settings.autostart
+                val enabling = !settings.autostart
+                settings.autostart = enabling
+                if (enabling && needsOverlayPermissionForBackgroundPopup()) {
+                    requestOverlayPermissionIfSupported()
+                }
                 renderStatus()
             },
         )
@@ -556,7 +563,11 @@ class MainActivity : AppCompatActivity() {
 
         // Autostart card state
         val auto = settings.autostart
-        autostartStatus.text = if (auto) getString(R.string.setting_autostart_on) else getString(R.string.setting_autostart_off)
+        autostartStatus.text = when {
+            !auto -> getString(R.string.setting_autostart_off)
+            needsOverlayPermissionForBackgroundPopup() -> getString(R.string.setting_autostart_on_overlay_hint)
+            else -> getString(R.string.setting_autostart_on)
+        }
         autostartPill.text = if (auto) getString(R.string.pill_on) else getString(R.string.pill_off)
         autostartPill.setTextColor(if (auto) Color.parseColor("#052E16") else Color.parseColor("#94A3B8"))
         autostartPill.background = roundedRect(
@@ -625,6 +636,20 @@ class MainActivity : AppCompatActivity() {
         cornerRadius = radiusPx
         setColor(fillColor)
         if (strokeWidthPx > 0) setStroke(strokeWidthPx, strokeColor)
+    }
+
+    private fun needsOverlayPermissionForBackgroundPopup(): Boolean =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !AndroidSettings.canDrawOverlays(this)
+
+    private fun requestOverlayPermissionIfSupported() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        runCatching {
+            val intent = Intent(
+                AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName"),
+            )
+            startActivity(intent)
+        }
     }
 
     private fun dp(value: Int): Int =

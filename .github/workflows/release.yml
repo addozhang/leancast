@@ -32,9 +32,15 @@ jobs:
         run: |
           VERSION_NAME="${GITHUB_REF_NAME#v}"
           VERSION_CODE="${GITHUB_RUN_NUMBER}"
+          if [[ "$VERSION_NAME" == *-* ]]; then
+            IS_PRERELEASE="true"
+          else
+            IS_PRERELEASE="false"
+          fi
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
-          echo "Releasing version $VERSION_NAME (code $VERSION_CODE)"
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> "$GITHUB_ENV"
+          echo "Releasing version $VERSION_NAME (code $VERSION_CODE, prerelease=$IS_PRERELEASE)"
 
       - name: Build release APK
         env:
@@ -51,4 +57,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           files: LeanCast-*.apk

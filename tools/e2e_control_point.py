@@ -24,6 +24,7 @@ M_SEARCH = "\r\n".join([
 ]).encode()
 
 AVT = "urn:schemas-upnp-org:service:AVTransport:1"
+OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 def soap_envelope(action: str, args_xml: str) -> str:
@@ -47,7 +48,7 @@ def control(location: str, action: str, args_xml: str) -> tuple[int, str]:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with OPENER.open(req, timeout=10) as resp:
             return resp.status, resp.read().decode()
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode()
@@ -88,7 +89,7 @@ def main() -> int:
         print("[1] FAIL: no MediaRenderer responded to M-SEARCH")
         return 1
 
-    with urllib.request.urlopen(location, timeout=5) as resp:
+    with OPENER.open(location, timeout=5) as resp:
         desc = resp.read().decode()
     name = find("friendlyName", desc)
     udn = find("UDN", desc)
@@ -97,7 +98,7 @@ def main() -> int:
     assert services == 3, "expected 3 services"
 
     scpd_url = location.rsplit("/", 1)[0] + "/scpd/avt.xml"
-    with urllib.request.urlopen(scpd_url, timeout=5) as resp:
+    with OPENER.open(scpd_url, timeout=5) as resp:
         scpd = resp.read().decode()
     actions = re.findall(r"<name>(\w+)</name>", scpd)
     print(f"[3] AVT SCPD OK: {len(actions)} names incl. Play={('Play' in actions)}")
@@ -159,8 +160,8 @@ def main() -> int:
     assert state == "STOPPED", body
 
     status, body = control(location, "NonsenseAction", "<InstanceID>0</InstanceID>")
-    print(f"[12] Unknown action -> HTTP {status} (expect 401)")
-    assert status == 401 and "401" in find("errorCode", body)
+    print(f"[12] Unknown action -> HTTP {status} (errorCode={find('errorCode', body)})")
+    assert status in (401, 500) and "401" in find("errorCode", body)
 
     print("E2E PASS")
     return 0

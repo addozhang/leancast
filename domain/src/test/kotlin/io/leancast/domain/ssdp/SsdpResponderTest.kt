@@ -105,4 +105,45 @@ class SsdpResponderTest {
         assertTrue(text.contains("http://10.0.0.9:12345/desc.xml"))
         assertTrue(text.contains("SERVER: CustomStack/9\r\n"))
     }
+
+    @Test
+    fun `dynamic locationProvider suppresses responses while offline and reflects updated LAN IP`() {
+        var currentIp: String? = null
+        val dynamicResponder = SsdpResponder(
+            identity = identity.copy(location = ""),
+            clockMs = { 0L },
+            locationProvider = { currentIp?.let { "http://$it:49152/desc.xml" } },
+        )
+
+        // Right after boot before DHCP finishes, we must not advertise 0.0.0.0
+        assertTrue(dynamicResponder.responsesFor(search("ssdp:all")).isEmpty())
+        assertTrue(dynamicResponder.aliveMessages().isEmpty())
+
+        // Once LAN IP is assigned, M-SEARCH and alive messages carry the live URL
+        currentIp = "192.168.50.88"
+        val searchReply = dynamicResponder
+            .responsesFor(search("urn:schemas-upnp-org:device:MediaRenderer:1"))
+            .single().decodeToString()
+        assertTrue(searchReply.contains("LOCATION: http://192.168.50.88:49152/desc.xml\r\n"))
+
+        val aliveText = dynamicResponder.aliveMessages().joinToString("\n") { it.decodeToString() }
+        assertTrue(aliveText.contains("LOCATION: http://192.168.50.88:49152/desc.xml\r\n"))
+
+        // If LAN IP changes (e.g. Wi-Fi <-> Ethernet switch), subsequent replies use the new IP
+        currentIp = "192.168.50.99"
+        val updatedReply = dynamicResponder
+            .responsesFor(search("urn:schemas-upnp-org:device:MediaRenderer:1"))
+            .single().decodeToString()
+        assertTrue(updatedReply.contains("LOCATION: http://192.168.50.99:49152/desc.xml\r\n"))
+    }
+
+    @Test
+    fun `wildcard 0_0_0_0 location is treated as offline and never advertised`() {
+        val offlineResponder = SsdpResponder(
+            identity = identity.copy(location = "http://0.0.0.0:49152/desc.xml"),
+            clockMs = { 0L },
+        )
+        assertTrue(offlineResponder.responsesFor(search("ssdp:all")).isEmpty())
+        assertTrue(offlineResponder.aliveMessages().isEmpty())
+    }
 }

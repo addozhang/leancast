@@ -39,6 +39,7 @@
     <string name="setting_rename_desc">Customize how this TV appears in cast lists</string>
     <string name="setting_autostart">Launch at Startup</string>
     <string name="setting_autostart_on">Start automatically when TV powers on</string>
+    <string name="setting_autostart_on_overlay_hint">Enabled · Grant "Display over other apps" if cast screen does not pop up</string>
     <string name="setting_autostart_off">Start only when LeanCast is opened</string>
     <string name="action_toggle_service">Cast Service</string>
     <string name="action_service_running">Listening on LAN · Press OK to stop</string>

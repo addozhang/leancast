@@ -39,6 +39,7 @@
     <string name="setting_rename_desc">修改手机端投屏列表中显示的电视名称</string>
     <string name="setting_autostart">开机自启</string>
     <string name="setting_autostart_on">电视开机后自动在后台静默开启投屏服务</string>
+    <string name="setting_autostart_on_overlay_hint">已开启 · 建议授予「悬浮窗/上层显示」权限以支持后台自动弹出播放页</string>
     <string name="setting_autostart_off">仅在手动打开 LeanCast 时开启投屏服务</string>
     <string name="action_toggle_service">投屏服务</string>
     <string name="action_service_running">正在局域网监听 · 按确定键停止</string>
