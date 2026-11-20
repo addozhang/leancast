@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-**[下载 APK](https://github.com/addozhang/leancast/releases/latest) · [支持的设备](#支持的设备) · [报告设备兼容性](https://github.com/addozhang/leancast/issues/new?template=device-compatibility.yml)**
+**[下载 APK](https://github.com/addozhang/leancast/releases/latest) · [官网](https://solocraft.app/leancast) · [支持的设备](#支持的设备) · [报告设备兼容性](https://github.com/addozhang/leancast/issues/new?template=device-compatibility.yml)**
 
 <p align="center">
   <img src="docs/screenshots/main-zh.png?v=2" width="49%" alt="LeanCast 电视主界面" />
