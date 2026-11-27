@@ -39,4 +39,16 @@ class UpnpTimeTest {
         assertNull(UpnpTime.parseHmsToMs("01:02"))
         assertNull(UpnpTime.parseHmsToMs(""))
     }
+
+    @Test
+    fun `renders ASCII digits regardless of system locale`() {
+        val previous = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ar-EG"))
+            assertEquals("1:31:32", UpnpTime.renderMsToHms(5_492_000L))
+            assertEquals("0:00:00", UpnpTime.renderMsToHms(0L))
+        } finally {
+            java.util.Locale.setDefault(previous)
+        }
+    }
 }

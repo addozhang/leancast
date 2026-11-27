@@ -15,8 +15,12 @@ object PlayerLaunchPolicy {
      * or launcher is still settling, or when playback resumes from pause/prepare,
      * the player is surfaced reliably.
      */
-    fun shouldSurfacePlayer(state: TransportState): Boolean = when (state) {
-        TransportState.TRANSITIONING, TransportState.PLAYING -> true
-        TransportState.NO_MEDIA_PRESENT, TransportState.PAUSED_PLAYBACK, TransportState.STOPPED -> false
+    @JvmOverloads
+    fun shouldSurfacePlayer(state: TransportState, playerVisible: Boolean = false): Boolean {
+        if (playerVisible) return false
+        return when (state) {
+            TransportState.TRANSITIONING, TransportState.PLAYING -> true
+            TransportState.NO_MEDIA_PRESENT, TransportState.PAUSED_PLAYBACK, TransportState.STOPPED -> false
+        }
     }
 }

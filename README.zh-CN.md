@@ -79,7 +79,7 @@ LeanCast 是**无原生库**的纯 Kotlin APK，`minSdk 21`（Android 5.0，2014
 ```bash
 adb connect <TV-IP>:5555
 adb install -r LeanCast-<版本号>.apk
-adb shell am start -n io.leancast/io.leancast.app.MainActivity
+adb shell am start -n app.solocraft.leancast/io.leancast.app.MainActivity
 ```
 
 ## 资源占用

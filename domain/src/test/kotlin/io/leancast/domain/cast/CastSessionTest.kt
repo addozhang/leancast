@@ -160,4 +160,62 @@ class CastSessionTest {
         assertEquals(5_492_000L, session.positionMs())
         assertEquals(7_200_000L, session.durationMs())
     }
+
+    @Test
+    fun `stale player callbacks from previous media generation are ignored`() {
+        session.setUri("http://x/old.mp4", null)
+        session.play()
+        val oldGen = session.mediaGeneration()
+
+        // Switch to a new item before old player callbacks finish draining.
+        session.setUri("http://x/new.mp4", null)
+        session.play()
+        val newGen = session.mediaGeneration()
+        assertTrue(newGen > oldGen)
+        assertEquals(TransportState.TRANSITIONING, session.state)
+
+        // Late error/ended/prepared from oldGen must NOT stop or corrupt new item.
+        session.onPlayerError(oldGen)
+        session.onPlayerEnded(oldGen)
+        session.onPlayerPrepared(oldGen)
+        assertEquals(TransportState.TRANSITIONING, session.state)
+        assertEquals("http://x/new.mp4", session.currentUri)
+
+        // Current generation callbacks apply normally.
+        session.onPlayerPrepared(newGen)
+        assertEquals(TransportState.PLAYING, session.state)
+        session.onPlayerEnded(newGen)
+        assertEquals(TransportState.STOPPED, session.state)
+    }
+
+    @Test
+    fun `concurrent session operations remain consistent across threads`() {
+        val threads = (1..6).map { idx ->
+            Thread {
+                repeat(200) { iter ->
+                    when ((idx + iter) % 6) {
+                        0 -> {
+                            session.setUri("http://x/$idx-$iter.mp4", null)
+                            session.play()
+                        }
+                        1 -> session.onPlayerPrepared(session.mediaGeneration())
+                        2 -> session.pause()
+                        3 -> session.resume()
+                        4 -> {
+                            session.setVolume((idx * iter) % 120)
+                            session.setMute(iter % 2 == 0)
+                        }
+                        5 -> {
+                            session.positionMs()
+                            session.durationMs()
+                            session.cyclePlaybackSpeed()
+                        }
+                    }
+                }
+            }
+        }
+        threads.forEach { it.start() }
+        threads.forEach { it.join(5_000) }
+        assertTrue(session.volume in 0..100)
+    }
 }

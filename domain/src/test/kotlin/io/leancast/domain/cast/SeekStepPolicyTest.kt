@@ -42,4 +42,10 @@ class SeekStepPolicyTest {
             step
         }
     }
+
+    @Test
+    fun `negative repeat count clamps safely to base step`() {
+        assertEquals(10_000L, SeekStepPolicy.stepFor(-1, forward = true))
+        assertEquals(-10_000L, SeekStepPolicy.stepFor(-20, forward = false))
+    }
 }

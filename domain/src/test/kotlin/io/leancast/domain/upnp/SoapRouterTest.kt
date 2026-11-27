@@ -99,13 +99,24 @@ class SoapRouterTest {
     }
 
     @Test
-    fun `GetMediaInfo reports one track while media stored`() {
-        session.setUri("http://x/v.mp4", null)
+    fun `GetMediaInfo reports one track and stored metadata`() {
+        val didl = "<DIDL-Lite><item><dc:title>Clip</dc:title></item></DIDL-Lite>"
+        session.setUri("http://x/v.mp4", didl)
         val result = router.route(req(UpnpService.AVT, "GetMediaInfo"))
         assertTrue(result.body.contains("<NrTracks>1</NrTracks>"))
+        assertTrue(result.body.contains("&lt;DIDL-Lite&gt;"))
         session.setUri(null, null)
         val cleared = router.route(req(UpnpService.AVT, "GetMediaInfo"))
         assertTrue(cleared.body.contains("<NrTracks>0</NrTracks>"))
+        assertTrue(cleared.body.contains("<CurrentURIMetaData></CurrentURIMetaData>"))
+    }
+
+    @Test
+    fun `mute actions round-trip`() {
+        router.route(req(UpnpService.RCS, "SetMute", "Channel" to "Master", "DesiredMute" to "1"))
+        assertTrue(router.route(req(UpnpService.RCS, "GetMute", "Channel" to "Master")).body.contains("<CurrentMute>1</CurrentMute>"))
+        router.route(req(UpnpService.RCS, "SetMute", "Channel" to "Master", "DesiredMute" to "false"))
+        assertTrue(router.route(req(UpnpService.RCS, "GetMute", "Channel" to "Master")).body.contains("<CurrentMute>0</CurrentMute>"))
     }
 
     @Test

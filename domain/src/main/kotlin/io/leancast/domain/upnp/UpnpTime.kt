@@ -18,6 +18,6 @@ object UpnpTime {
     /** Renders milliseconds as `H:MM:SS`, truncating sub-second remainder. */
     fun renderMsToHms(ms: Long): String {
         val total = (ms.coerceAtLeast(0)) / 1000
-        return "%d:%02d:%02d".format(total / 3600, (total % 3600) / 60, total % 60)
+        return "%d:%02d:%02d".format(java.util.Locale.US, total / 3600, (total % 3600) / 60, total % 60)
     }
 }

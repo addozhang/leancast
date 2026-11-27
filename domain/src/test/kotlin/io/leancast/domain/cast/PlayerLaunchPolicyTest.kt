@@ -22,4 +22,10 @@ class PlayerLaunchPolicyTest {
         assertFalse(PlayerLaunchPolicy.shouldSurfacePlayer(TransportState.PAUSED_PLAYBACK))
         assertFalse(PlayerLaunchPolicy.shouldSurfacePlayer(TransportState.STOPPED))
     }
+
+    @Test
+    fun `does not re-surface when player activity is already visible`() {
+        assertFalse(PlayerLaunchPolicy.shouldSurfacePlayer(TransportState.TRANSITIONING, playerVisible = true))
+        assertFalse(PlayerLaunchPolicy.shouldSurfacePlayer(TransportState.PLAYING, playerVisible = true))
+    }
 }

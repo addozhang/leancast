@@ -40,4 +40,18 @@ class OsdFormatterTest {
         assertEquals("1.5x", OsdFormatter.formatSpeed(1.5f))
         assertEquals("2.0x", OsdFormatter.formatSpeed(2.0f))
     }
+
+    @Test
+    fun `formats clock and seek delta with ASCII digits under non-Western locale`() {
+        val previous = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ar-EG"))
+            assertEquals("01:05", OsdFormatter.formatClock(65_000L))
+            assertEquals("1:31:32", OsdFormatter.formatClock(5_492_000L))
+            assertEquals("+1:00", OsdFormatter.formatSeekDelta(60_000L))
+            assertEquals("-2:00", OsdFormatter.formatSeekDelta(-120_000L))
+        } finally {
+            java.util.Locale.setDefault(previous)
+        }
+    }
 }

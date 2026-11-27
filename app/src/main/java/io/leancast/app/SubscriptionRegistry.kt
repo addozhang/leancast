@@ -1,10 +1,12 @@
 package io.leancast.app
 
 import android.util.Log
+import io.leancast.domain.upnp.GenaProtocol
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * GENA subscriptions and event delivery.
@@ -14,8 +16,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * the sender's cast session stuck in a "connecting" state — and many clients
  * eventually abort the session even though the media is playing.
  *
- * Delivery happens on a single background thread: a slow or dead callback must
- * never delay a SOAP response.
+ * Delivery uses a bounded worker pool combined with a per-subscriber FIFO drain
+ * queue: each subscriber receives its events (`SEQ 0, 1, 2...`) strictly in
+ * order, while a slow or unreachable subscriber never stalls healthy ones.
  */
 class SubscriptionRegistry {
 
@@ -23,22 +26,35 @@ class SubscriptionRegistry {
         val sid: String,
         val service: String,
         val callbacks: List<String>,
-        @Volatile var seq: Int = 0,
+        val createdOrder: Long,
+        var seq: Long = 0L,
         @Volatile var expiresAtMs: Long,
-        @Volatile var failures: Int = 0,
+        var failures: Int = 0,
+        val queue: ArrayDeque<String> = ArrayDeque(),
+        var draining: Boolean = false,
     )
 
     private val subs = ConcurrentHashMap<String, Subscriber>()
     private val lastBody = ConcurrentHashMap<String, String>()
-    private val worker = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "leancast-gena").apply { isDaemon = true }
+    private val threadSeq = AtomicInteger(1)
+    private val subOrder = AtomicLong(0L)
+    private val worker = Executors.newFixedThreadPool(DELIVERY_THREADS) { runnable ->
+        Thread(runnable, "leancast-gena-${threadSeq.getAndIncrement()}").apply { isDaemon = true }
     }
-    private val pending = AtomicInteger()
 
-    /** Registers a subscription and returns its SID. */
+    /** Registers a subscription and returns its SID, capping total active subscriptions. */
     fun subscribe(service: String, callbacks: List<String>, timeoutSeconds: Int): String {
+        pruneExpired()
+        enforceCapacity()
+        val now = System.currentTimeMillis()
         val sid = "uuid:${UUID.randomUUID()}"
-        subs[sid] = Subscriber(sid, service, callbacks, expiresAtMs = expiry(timeoutSeconds))
+        subs[sid] = Subscriber(
+            sid = sid,
+            service = service,
+            callbacks = callbacks,
+            createdOrder = subOrder.incrementAndGet(),
+            expiresAtMs = now + timeoutSeconds * 1000L,
+        )
         return sid
     }
 
@@ -63,20 +79,13 @@ class SubscriptionRegistry {
         if (lastBody.put(service, body) == body) return
         val targets = subs.values.filter { it.service == service }
         if (targets.isEmpty()) return
-        pending.incrementAndGet()
-        worker.execute {
-            try {
-                targets.forEach { deliver(it, body) }
-            } finally {
-                pending.decrementAndGet()
-            }
-        }
+        targets.forEach { enqueue(it, body) }
     }
 
-    /** Sends the mandatory initial event right after a subscription is accepted. */
+    /** Sends the mandatory initial event right after a subscription response is sent. */
     fun publishInitial(sid: String, body: String) {
         val sub = subs[sid] ?: return
-        worker.execute { deliver(sub, body) }
+        enqueue(sub, body)
     }
 
     fun shutdown() {
@@ -84,12 +93,46 @@ class SubscriptionRegistry {
         worker.shutdownNow()
     }
 
-    private fun deliver(sub: Subscriber, body: String) {
+    private fun enqueue(sub: Subscriber, body: String) {
+        val scheduleDrain = synchronized(sub) {
+            if (subs[sub.sid] == null) return
+            if (sub.queue.size >= MAX_PENDING_PER_SUB) {
+                sub.queue.removeFirst()
+            }
+            sub.queue.addLast(body)
+            if (!sub.draining) {
+                sub.draining = true
+                true
+            } else {
+                false
+            }
+        }
+        if (scheduleDrain) {
+            runCatching { worker.execute { drain(sub) } }.onFailure {
+                synchronized(sub) { sub.draining = false }
+            }
+        }
+    }
+
+    private fun drain(sub: Subscriber) {
+        while (true) {
+            val nextBody = synchronized(sub) {
+                if (subs[sub.sid] == null || sub.queue.isEmpty()) {
+                    sub.draining = false
+                    return
+                }
+                sub.queue.removeFirst()
+            }
+            deliverOne(sub, nextBody)
+        }
+    }
+
+    private fun deliverOne(sub: Subscriber, body: String) {
         if (subs[sub.sid] == null) return
         val payload = body.toByteArray(Charsets.UTF_8)
         for (url in sub.callbacks) {
             if (post(url, sub.sid, sub.seq, payload)) {
-                sub.seq = (sub.seq + 1) and 0xFFFF_FFFF.toInt()
+                sub.seq = GenaProtocol.nextSeq(sub.seq)
                 sub.failures = 0
                 return
             }
@@ -108,7 +151,7 @@ class SubscriptionRegistry {
      * its fixed verb whitelist and throws for `NOTIFY`, which is exactly the
      * verb GENA requires.
      */
-    private fun post(url: String, sid: String, seq: Int, body: ByteArray): Boolean {
+    private fun post(url: String, sid: String, seq: Long, body: ByteArray): Boolean {
         return try {
             val uri = java.net.URI(url)
             val host = uri.host ?: return false
@@ -150,28 +193,30 @@ class SubscriptionRegistry {
         subs.values.removeAll { it.expiresAtMs <= now }
     }
 
+    private fun enforceCapacity() {
+        while (subs.size >= MAX_SUBSCRIPTIONS) {
+            val oldest = subs.values.minByOrNull { it.createdOrder } ?: break
+            subs.remove(oldest.sid)
+        }
+    }
+
     private fun expiry(timeoutSeconds: Int) = System.currentTimeMillis() + timeoutSeconds * 1000L
 
     companion object {
         private const val TAG = "LeanCastGena"
         private const val MAX_FAILURES = 3
-        private const val CONNECT_TIMEOUT_MS = 3_000
-        private const val READ_TIMEOUT_MS = 3_000
+        private const val MAX_SUBSCRIPTIONS = 32
+        private const val MAX_PENDING_PER_SUB = 8
+        private const val DELIVERY_THREADS = 4
+        private const val CONNECT_TIMEOUT_MS = 2_000
+        private const val READ_TIMEOUT_MS = 2_000
 
         /** Parses `TIMEOUT: Second-1800` / `Second-infinite`; defaults to 1800 s. */
-        fun parseTimeout(raw: String?): Int {
-            val value = raw?.trim() ?: return DEFAULT_TIMEOUT
-            if (!value.startsWith("Second-", ignoreCase = true)) return DEFAULT_TIMEOUT
-            val tail = value.removePrefix("Second-").removePrefix("second-")
-            if (tail.equals("infinite", ignoreCase = true)) return DEFAULT_TIMEOUT
-            return tail.toIntOrNull()?.coerceIn(60, 86_400) ?: DEFAULT_TIMEOUT
-        }
+        fun parseTimeout(raw: String?): Int = GenaProtocol.parseTimeout(raw)
 
-        /** Extracts `<http://host:port/path>` (possibly several) from a CALLBACK header. */
-        fun parseCallbacks(raw: String?): List<String> =
-            raw?.let { Regex("<([^>]+)>").findAll(it).map { m -> m.groupValues[1].trim() }.toList() }
-                .orEmpty()
+        /** Extracts validated HTTP callback URLs from a CALLBACK header. */
+        fun parseCallbacks(raw: String?): List<String> = GenaProtocol.parseCallbacks(raw)
 
-        const val DEFAULT_TIMEOUT = 1800
+        const val DEFAULT_TIMEOUT = GenaProtocol.DEFAULT_TIMEOUT
     }
 }

@@ -120,5 +120,32 @@ class PlaybackSpeedTest {
         router.route(SoapRequest(UpnpService.AVT, "Play", mapOf("InstanceID" to "0", "Speed" to "2")))
         assertEquals(2.0f, session.playbackSpeed, 0.001f)
         assertEquals(2.0f, port.appliedSpeed, 0.001f)
+
+        // GetTransportInfo reflects the active playback speed
+        val info = router.route(SoapRequest(UpnpService.AVT, "GetTransportInfo", emptyMap()))
+        org.junit.Assert.assertTrue(
+            "expected <CurrentSpeed>2</CurrentSpeed> or 2.0 in ${info.body}",
+            info.body.contains("<CurrentSpeed>2</CurrentSpeed>") || info.body.contains("<CurrentSpeed>2.0</CurrentSpeed>"),
+        )
+    }
+
+    @Test
+    fun `GetTransportInfo reports non-integer speed like 1_5 and 1 for default`() {
+        val port = FakePort()
+        val session = CastSession(port)
+        val router = SoapRouter(session)
+        router.route(SoapRequest(UpnpService.AVT, "SetAVTransportURI", mapOf("CurrentURI" to "http://cdn/v.mp4")))
+        session.onPlayerPrepared()
+
+        val initial = router.route(SoapRequest(UpnpService.AVT, "GetTransportInfo", emptyMap()))
+        org.junit.Assert.assertTrue(initial.body.contains("<CurrentSpeed>1</CurrentSpeed>"))
+
+        session.cyclePlaybackSpeed() // 1.25x
+        session.cyclePlaybackSpeed() // 1.5x
+        val sped = router.route(SoapRequest(UpnpService.AVT, "GetTransportInfo", emptyMap()))
+        org.junit.Assert.assertTrue(
+            "expected <CurrentSpeed>1.5</CurrentSpeed> in ${sped.body}",
+            sped.body.contains("<CurrentSpeed>1.5</CurrentSpeed>"),
+        )
     }
 }

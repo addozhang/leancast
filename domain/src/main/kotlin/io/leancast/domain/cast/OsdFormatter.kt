@@ -16,7 +16,7 @@ object OsdFormatter {
         } else {
             val min = totalSec / 60L
             val sec = totalSec % 60L
-            "$sign%d:%02d".format(min, sec)
+            "$sign%d:%02d".format(java.util.Locale.US, min, sec)
         }
     }
 
@@ -29,9 +29,9 @@ object OsdFormatter {
         val m = (totalSec % 3600L) / 60L
         val s = totalSec % 60L
         return if (h > 0L) {
-            "%d:%02d:%02d".format(h, m, s)
+            "%d:%02d:%02d".format(java.util.Locale.US, h, m, s)
         } else {
-            "%02d:%02d".format(m, s)
+            "%02d:%02d".format(java.util.Locale.US, m, s)
         }
     }
 

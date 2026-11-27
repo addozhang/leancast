@@ -15,19 +15,25 @@ data class SoapRequest(
 /** Parses SOAP 1.1 control envelopes (UPnP control encoding). */
 object SoapParser {
 
+    private data class ParsedBody(
+        val service: UpnpService?,
+        val action: String?,
+        val args: Map<String, String>,
+    )
+
     fun parse(soapActionHeader: String?, body: String): SoapRequest? = try {
         val headerRoute = soapActionHeader?.let { routeFromHeader(it) }
-        val bodyRoute = routeFromBody(body)
+        val parsedBody = parseBody(body)
         when {
             headerRoute != null -> SoapRequest(
                 service = headerRoute.first,
                 action = headerRoute.second,
-                args = bodyArgs(body),
+                args = parsedBody?.args ?: emptyMap(),
             )
-            bodyRoute != null -> SoapRequest(
-                service = bodyRoute.first,
-                action = bodyRoute.second,
-                args = bodyRoute.third,
+            parsedBody?.service != null && parsedBody.action != null -> SoapRequest(
+                service = parsedBody.service,
+                action = parsedBody.action,
+                args = parsedBody.args,
             )
             else -> null
         }
@@ -47,8 +53,9 @@ object SoapParser {
         return service to action
     }
 
-    /** Resolves service+action+args from the first element inside `Body`, prefix-agnostic. */
-    private fun routeFromBody(body: String): Triple<UpnpService, String, Map<String, String>>? {
+    /** Single-pass extraction of action, optional service URN, and arguments inside `Body`. */
+    private fun parseBody(body: String): ParsedBody? {
+        if (body.isBlank()) return null
         val parser = newParser(body)
         var inBody = false
         var actionDepth = -1
@@ -72,30 +79,32 @@ object SoapParser {
                 }
             }
         }
-        val a = action ?: return null
-        val s = service ?: return null
-        return Triple(s, a, args)
+        return if (action != null) ParsedBody(service, action, args) else null
     }
-
-    private fun bodyArgs(body: String): Map<String, String> =
-        routeFromBody(body)?.third ?: emptyMap()
 
     /**
      * Captures an argument's text content, tolerating senders that embed raw
      * (unescaped) XML inside the argument element: child elements are
-     * re-serialized into the returned string.
+     * re-serialized with properly escaped text and attribute values.
      */
     private fun captureArgText(parser: XmlPullParser): String {
         val depth = parser.depth
         val out = StringBuilder()
         while (parser.next() != XmlPullParser.END_DOCUMENT) {
             when (parser.eventType) {
-                XmlPullParser.TEXT -> out.append(parser.text)
+                XmlPullParser.TEXT -> {
+                    val text = parser.text
+                    if (parser.depth > depth) {
+                        out.append(XmlUtil.escape(text))
+                    } else {
+                        out.append(text)
+                    }
+                }
                 XmlPullParser.START_TAG -> {
                     out.append('<').append(parser.name)
                     for (i in 0 until parser.attributeCount) {
                         out.append(' ').append(parser.getAttributeName(i))
-                            .append("=\"").append(parser.getAttributeValue(i)).append('"')
+                            .append("=\"").append(XmlUtil.escape(parser.getAttributeValue(i))).append('"')
                     }
                     out.append('>')
                 }

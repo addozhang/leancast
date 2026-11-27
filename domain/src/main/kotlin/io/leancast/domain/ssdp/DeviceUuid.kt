@@ -17,7 +17,7 @@ object DeviceUuid {
      * device on API 26+, and this prefix keeps the result from being a bare hash
      * of the raw id.
      */
-    private const val SALT = "io.leancast:"
+    private const val SALT = "app.solocraft.leancast:"
 
     /**
      * Values devices are known to report when they have no usable id: the empty

@@ -49,7 +49,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew :domain:test assembleRelease --no-daemon
+          ./gradlew :domain:test :app:testDebugUnitTest assembleRelease --no-daemon
           cp app/build/outputs/apk/release/app-release.apk "LeanCast-${VERSION_NAME}.apk"
           ls -lh LeanCast-*.apk
 

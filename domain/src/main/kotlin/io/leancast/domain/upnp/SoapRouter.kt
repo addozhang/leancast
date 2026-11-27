@@ -71,7 +71,10 @@ class SoapRouter(private val session: CastSession) {
         )
         "GetTransportInfo" -> Result(
             200,
-            SoapResponses.getTransportInfo(session.state.name),
+            SoapResponses.getTransportInfo(
+                state = session.state.name,
+                currentSpeed = PlaybackSpeedPolicy.formatUpnpSpeed(session.playbackSpeed),
+            ),
         )
         "GetMediaInfo" -> Result(
             200,
@@ -79,6 +82,7 @@ class SoapRouter(private val session: CastSession) {
                 nrTracks = if (session.currentUri != null) 1 else 0,
                 durationMs = session.durationMs(),
                 currentUri = session.currentUri,
+                currentUriMetaData = session.currentMetaData,
             ),
         )
         "GetTransportSettings" -> Result(200, SoapResponses.getTransportSettings())
@@ -94,16 +98,32 @@ class SoapRouter(private val session: CastSession) {
 
     private fun routeRcs(action: String, args: Map<String, String>): Result = when (action) {
         "SetVolume" -> {
-            args["DesiredVolume"]?.toIntOrNull()?.let { session.setVolume(it) }
+            if (isMasterChannel(args["Channel"])) {
+                args["DesiredVolume"]?.toIntOrNull()?.let { session.setVolume(it) }
+            }
             ok(action, UpnpService.RCS)
         }
         "GetVolume" -> Result(200, SoapResponses.getVolume(session.volume))
-        "SetMute" -> ok(action, UpnpService.RCS)
-        "GetMute" -> Result(200, SoapResponses.getMute(false))
+        "SetMute" -> {
+            if (isMasterChannel(args["Channel"])) {
+                parseUpnpBoolean(args["DesiredMute"])?.let { session.setMute(it) }
+            }
+            ok(action, UpnpService.RCS)
+        }
+        "GetMute" -> Result(200, SoapResponses.getMute(session.muted))
         "ListPresets" -> Result(200, SoapResponses.listPresets())
         "SelectPreset" -> ok(action, UpnpService.RCS)
         "GetVolumeDBRange" -> Result(200, SoapResponses.getVolumeDbRange())
         else -> invalidAction()
+    }
+
+    private fun isMasterChannel(channel: String?): Boolean =
+        channel.isNullOrBlank() || channel.equals("Master", ignoreCase = true)
+
+    private fun parseUpnpBoolean(raw: String?): Boolean? = when (raw?.trim()?.lowercase()) {
+        "1", "true", "yes" -> true
+        "0", "false", "no" -> false
+        else -> null
     }
 
     @Suppress("UNUSED_PARAMETER")

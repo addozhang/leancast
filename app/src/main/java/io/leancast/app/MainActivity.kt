@@ -43,12 +43,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var nowPlayingTitle: TextView
     private lateinit var guideStep3: TextView
 
-    private lateinit var renameDesc: TextView
     private lateinit var autostartStatus: TextView
     private lateinit var autostartPill: TextView
     private lateinit var serviceStatus: TextView
     private lateinit var servicePill: TextView
     private lateinit var resumePlayerCard: View
+
+    private var renderedBadgeKey: String? = null
+    private var renderedAutostart: Boolean? = null
+    private var renderedServiceRunning: Boolean? = null
 
     private val poll = Handler(Looper.getMainLooper())
     private val pollTask = object : Runnable {
@@ -140,7 +143,7 @@ class MainActivity : AppCompatActivity() {
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
         })
         titleCol.addView(TextView(this).apply {
-            text = getString(R.string.app_Tagline)
+            text = getString(R.string.app_tagline)
             setTextColor(Color.parseColor("#94A3B8"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
         })
@@ -325,7 +328,6 @@ class MainActivity : AppCompatActivity() {
             accentPill = false,
             onClick = { showRenameDialog() },
         )
-        renameDesc = renameRefs.subtitle
         col.addView(renameRefs.card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             bottomMargin = dp(14)
         })
@@ -568,29 +570,38 @@ class MainActivity : AppCompatActivity() {
             needsOverlayPermissionForBackgroundPopup() -> getString(R.string.setting_autostart_on_overlay_hint)
             else -> getString(R.string.setting_autostart_on)
         }
-        autostartPill.text = if (auto) getString(R.string.pill_on) else getString(R.string.pill_off)
-        autostartPill.setTextColor(if (auto) Color.parseColor("#052E16") else Color.parseColor("#94A3B8"))
-        autostartPill.background = roundedRect(
-            fillColor = if (auto) Color.parseColor("#34D399") else Color.parseColor("#1E293B"),
-            strokeColor = 0,
-            strokeWidthPx = 0,
-            radiusPx = dp(999).toFloat(),
-        )
+        if (renderedAutostart != auto) {
+            renderedAutostart = auto
+            autostartPill.text = if (auto) getString(R.string.pill_on) else getString(R.string.pill_off)
+            autostartPill.setTextColor(if (auto) Color.parseColor("#052E16") else Color.parseColor("#94A3B8"))
+            autostartPill.background = roundedRect(
+                fillColor = if (auto) Color.parseColor("#34D399") else Color.parseColor("#1E293B"),
+                strokeColor = 0,
+                strokeWidthPx = 0,
+                radiusPx = dp(999).toFloat(),
+            )
+        }
 
         // Service card state
         val running = session != null
-        serviceStatus.text = if (running) getString(R.string.action_service_running) else getString(R.string.action_service_stopped)
-        servicePill.text = if (running) getString(R.string.pill_active) else getString(R.string.pill_stopped)
-        servicePill.setTextColor(if (running) Color.parseColor("#052E16") else Color.parseColor("#FCA5A5"))
-        servicePill.background = roundedRect(
-            fillColor = if (running) Color.parseColor("#34D399") else Color.parseColor("#7F1D1D"),
-            strokeColor = 0,
-            strokeWidthPx = 0,
-            radiusPx = dp(999).toFloat(),
-        )
+        if (renderedServiceRunning != running) {
+            renderedServiceRunning = running
+            serviceStatus.text = if (running) getString(R.string.action_service_running) else getString(R.string.action_service_stopped)
+            servicePill.text = if (running) getString(R.string.pill_active) else getString(R.string.pill_stopped)
+            servicePill.setTextColor(if (running) Color.parseColor("#052E16") else Color.parseColor("#FCA5A5"))
+            servicePill.background = roundedRect(
+                fillColor = if (running) Color.parseColor("#34D399") else Color.parseColor("#7F1D1D"),
+                strokeColor = 0,
+                strokeWidthPx = 0,
+                radiusPx = dp(999).toFloat(),
+            )
+        }
     }
 
     private fun styleBadge(bgHex: String, borderHex: String, textHex: String, label: String) {
+        val key = "$bgHex|$borderHex|$textHex|$label"
+        if (renderedBadgeKey == key) return
+        renderedBadgeKey = key
         badgeContainer.background = roundedRect(
             fillColor = Color.parseColor(bgHex),
             strokeColor = Color.parseColor(borderHex),
@@ -617,9 +628,9 @@ class MainActivity : AppCompatActivity() {
             .setView(container)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 settings.setFriendlyName(input.text.toString())
-                // Restart service so SSDP & UPnP description advertise the new name immediately
-                ReceiverService.stop(this)
-                ReceiverService.start(this)
+                // Re-announce over SSDP so senders refresh /desc.xml without interrupting playback
+                if (CastBus.session != null) ReceiverService.reannounce(this)
+                else ReceiverService.start(this)
                 renderStatus()
             }
             .setNegativeButton(android.R.string.cancel, null)

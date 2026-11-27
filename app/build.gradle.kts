@@ -16,7 +16,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "io.leancast"
+        applicationId = "app.solocraft.leancast"
         minSdk = 21
         targetSdk = 28
         versionCode = ciVersionCode ?: 11
@@ -39,6 +39,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -65,6 +68,10 @@ android {
         // (documented in openspec design); this app is not published on Play.
         disable += "ExpiredTargetSdkVersion"
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -78,4 +85,5 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("net.sf.kxml:kxml2:2.3.0")
 }

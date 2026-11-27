@@ -18,12 +18,14 @@ object LastChangeEvent {
     private const val RCS_NS = "urn:schemas-upnp-org:metadata-1-0/RCS/"
 
     /** Values AVTransport senders rely on; `CurrentTrackDuration` is `0:00:00` when unknown (live). */
+    @JvmOverloads
     fun avTransport(
         transportState: String,
         currentUri: String?,
         currentTrackDuration: String,
         currentTrackMetaData: String? = null,
         isLive: Boolean = false,
+        playbackSpeed: String = "1",
     ): String {
         val state = TransportState.entries.firstOrNull { it.name == transportState }
         val actions = state?.let { TransportActions.forState(it, currentUri != null, isLive) }.orEmpty()
@@ -31,7 +33,7 @@ object LastChangeEvent {
             append("<Event xmlns=\"$AVT_NS\"><InstanceID val=\"0\">")
             append("<TransportState val=\"$transportState\"/>")
             append("<TransportStatus val=\"OK\"/>")
-            append("<TransportPlaySpeed val=\"1\"/>")
+            append("<TransportPlaySpeed val=\"${XmlUtil.escape(playbackSpeed)}\"/>")
             append("<CurrentTrackURI val=\"${XmlUtil.escape(currentUri ?: "")}\"/>")
             append("<CurrentTrackDuration val=\"$currentTrackDuration\"/>")
             append("<CurrentMediaDuration val=\"$currentTrackDuration\"/>")

@@ -14,8 +14,7 @@ object MimeInference {
     fun guessMimeType(uri: String?): String? {
         if (uri == null) return null
         return when {
-            uri.contains(".m3u8", ignoreCase = true) ||
-                uri.contains("m3u8", ignoreCase = true) -> HLS
+            uri.contains("m3u8", ignoreCase = true) -> HLS
             uri.contains(".mpd", ignoreCase = true) -> DASH
             else -> null
         }

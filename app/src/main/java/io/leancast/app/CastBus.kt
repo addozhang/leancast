@@ -7,4 +7,5 @@ object CastBus {
     @Volatile var session: CastSession? = null
     @Volatile var port: ExoPlayerPort? = null
     @Volatile var endpoint: String = "" // "192.168.x.y:port" for the status screen
+    @Volatile var playerVisible: Boolean = false
 }

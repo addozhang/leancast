@@ -10,7 +10,7 @@ class DeviceDescriptionDoc(private val desc: RendererDescription) {
     <deviceType>urn:schemas-upnp-org:device:MediaRenderer:1</deviceType>
     <friendlyName>${XmlUtil.escape(desc.friendlyName)}</friendlyName>
     <manufacturer>${XmlUtil.escape(desc.manufacturer)}</manufacturer>
-    <manufacturerURL>https://github.com/leancast/leancast</manufacturerURL>
+    <manufacturerURL>https://github.com/addozhang/leancast</manufacturerURL>
     <modelName>${XmlUtil.escape(desc.modelName)}</modelName>
     <UDN>${XmlUtil.escape(desc.uuid)}</UDN>
     <dlna:X_DLNADOC>DMR-1.50</dlna:X_DLNADOC>

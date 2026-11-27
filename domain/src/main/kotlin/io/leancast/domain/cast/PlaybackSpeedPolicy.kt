@@ -35,4 +35,14 @@ object PlaybackSpeedPolicy {
         if (abs(value - DEFAULT_SPEED) < 0.001f) return null
         return STEPS.firstOrNull { abs(it - value) < 0.001f }
     }
+
+    /** Formats a playback speed for UPnP `CurrentSpeed` / `TransportPlaySpeed` (`1`, `1.25`, `1.5`, `2`, `0.75`). */
+    fun formatUpnpSpeed(speed: Float): String {
+        val scaled = kotlin.math.round(speed * 100f).toInt()
+        return when {
+            scaled % 100 == 0 -> (scaled / 100).toString()
+            scaled % 10 == 0 -> "%.1f".format(java.util.Locale.US, scaled / 100.0)
+            else -> "%.2f".format(java.util.Locale.US, scaled / 100.0)
+        }
+    }
 }

@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.ui.PlayerView
 import io.leancast.domain.cast.CastSession
 import io.leancast.domain.cast.OsdFormatter
+import io.leancast.domain.cast.PendingSeekTracker
 import io.leancast.domain.cast.SeekStepPolicy
 import io.leancast.domain.cast.TransportState
 
@@ -82,46 +83,49 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private val sessionListener = CastSession.Listener { state ->
-        runOnUiThread {
-            when (state) {
-                // A sender switching source does SetAVTransportURI + Play back to
-                // back, so NO_MEDIA_PRESENT is transient. Finishing straight away
-                // tore this activity down while audio kept playing, and the
-                // follow-up launch for the new item was lost (the instance was
-                // already finishing) — the user saw the dashboard over audio.
-                TransportState.STOPPED -> finish()
-                TransportState.NO_MEDIA_PRESENT -> scheduleIdleFinish()
-                TransportState.PAUSED_PLAYBACK -> {
-                    ui.removeCallbacks(finishIfStillIdle)
-                    attachPlayerIfMissing()
-                    showOsdBars(persistent = true)
-                    showCenterMessage(
-                        mainText = getString(R.string.osd_paused),
-                        subText = currentClockSummary(),
-                        persistent = true,
-                    )
-                }
-                TransportState.PLAYING -> {
-                    pendingSeekMs = -1L
-                    ui.removeCallbacks(finishIfStillIdle)
-                    attachPlayerIfMissing()
-                    showOsdBars(persistent = false)
-                    showCenterMessage(
-                        mainText = getString(R.string.osd_playing),
-                        subText = currentClockSummary(),
-                        persistent = false,
-                    )
-                }
-                TransportState.TRANSITIONING -> {
-                    ui.removeCallbacks(finishIfStillIdle)
-                    attachPlayerIfMissing()
-                    showOsdBars(persistent = true)
-                    showCenterMessage(
-                        mainText = getString(R.string.osd_loading),
-                        subText = CastBus.session?.currentTitle ?: "",
-                        persistent = true,
-                    )
-                }
+        runOnUiThread { applyTransportState(state) }
+    }
+
+    private fun applyTransportState(state: TransportState?) {
+        when (state) {
+            // A sender switching source does SetAVTransportURI + Play back to
+            // back, so NO_MEDIA_PRESENT is transient. Finishing straight away
+            // tore this activity down while audio kept playing, and the
+            // follow-up launch for the new item was lost (the instance was
+            // already finishing) — the user saw the dashboard over audio.
+            null, TransportState.STOPPED -> finish()
+            TransportState.NO_MEDIA_PRESENT -> scheduleIdleFinish()
+            TransportState.PAUSED_PLAYBACK -> {
+                ui.removeCallbacks(finishIfStillIdle)
+                attachPlayerIfMissing()
+                showOsdBars(persistent = true)
+                showCenterMessage(
+                    mainText = getString(R.string.osd_paused),
+                    subText = currentClockSummary(),
+                    persistent = true,
+                )
+            }
+            TransportState.PLAYING -> {
+                seekTracker.clear()
+                ui.removeCallbacks(finishIfStillIdle)
+                attachPlayerIfMissing()
+                showOsdBars(persistent = false)
+                showCenterMessage(
+                    mainText = getString(R.string.osd_playing),
+                    subText = currentClockSummary(),
+                    persistent = false,
+                )
+            }
+            TransportState.TRANSITIONING -> {
+                seekTracker.clear()
+                ui.removeCallbacks(finishIfStillIdle)
+                attachPlayerIfMissing()
+                showOsdBars(persistent = true)
+                showCenterMessage(
+                    mainText = getString(R.string.osd_loading),
+                    subText = CastBus.session?.currentTitle ?: "",
+                    persistent = true,
+                )
             }
         }
     }
@@ -201,7 +205,9 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        CastBus.playerVisible = true
         attachPlayerIfMissing()
+        applyTransportState(CastBus.session?.state)
         ui.post(tickProgress)
     }
 
@@ -223,6 +229,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        CastBus.playerVisible = false
         ui.removeCallbacks(tickProgress)
         playerView.player = null
         super.onStop()
@@ -278,18 +285,19 @@ class PlayerActivity : AppCompatActivity() {
     /**
      * Seeks relative to the freshest known position. Key repeats arrive faster
      * than the 500 ms position cache updates, so consecutive seeks accumulate
-     * on the last requested target instead of the stale cache.
+     * on the last requested target instead of the stale cache, while expiring
+     * automatically if paused or snapped to a distant keyframe.
      */
-    @Volatile private var pendingSeekMs: Long = -1L
+    private val seekTracker = PendingSeekTracker()
 
     private fun seekBy(deltaMs: Long) {
         val session = CastBus.session ?: return
         val cached = session.positionMs()
         val duration = session.durationMs()
-        val base = if (pendingSeekMs >= 0L) pendingSeekMs else cached
+        val base = seekTracker.basePosition(cached)
         val unclamped = (base + deltaMs).coerceAtLeast(0L)
         val target = if (duration > 0L) unclamped.coerceAtMost(duration) else unclamped
-        pendingSeekMs = target
+        seekTracker.recordSeek(target)
         session.seekTo(target)
 
         val arrow = if (deltaMs >= 0) "⏩" else "⏪"
@@ -458,11 +466,8 @@ class PlayerActivity : AppCompatActivity() {
     private fun refreshProgressUi(overridePosMs: Long? = null) {
         val session = CastBus.session ?: return
         val live = session.isLive()
-        val pos = overridePosMs ?: if (pendingSeekMs >= 0L) pendingSeekMs else session.positionMs()
+        val pos = overridePosMs ?: seekTracker.resolveDisplayPosition(session.positionMs())
         val dur = session.durationMs()
-        if (pendingSeekMs >= 0L && kotlin.math.abs(session.positionMs() - pendingSeekMs) < 1_500L) {
-            pendingSeekMs = -1L
-        }
         topTitleView.text = session.currentTitle?.takeIf { it.isNotBlank() } ?: getString(R.string.app_name)
         elapsedView.text = OsdFormatter.formatClock(pos)
         if (live) {

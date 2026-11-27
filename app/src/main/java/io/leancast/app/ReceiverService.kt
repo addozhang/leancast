@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import io.leancast.domain.cast.CastSession
+import io.leancast.domain.cast.PlaybackSpeedPolicy
 import io.leancast.domain.cast.PlayerLaunchPolicy
 import io.leancast.domain.cast.TransportState
 import io.leancast.domain.cast.VolumeMath
@@ -53,6 +54,7 @@ class ReceiverService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        ensureNotificationChannels()
         // Promote to foreground first: `startForegroundService` gives us only an
         // ~5 s window, so do it before the (slower) player/server wiring below.
         startForeground(NOTIFICATION_ID, buildNotification())
@@ -62,9 +64,14 @@ class ReceiverService : Service() {
         playerPort = ExoPlayerPort(this)
         session = CastSession(playerPort).also { s ->
             playerPort.session = s
+            // Seed initial device audio state before attaching sinks so startup
+            // never mutates TV volume/mute or emits premature GENA events.
+            s.setVolume(initialVolumePercent())
+            s.setMute(initialMuteState())
             s.addListener(::onTransportStateChanged)
             s.setVolumeSink(::applyDeviceVolume)
-            s.setVolume(initialVolumePercent())
+            s.setMuteSink(::applyDeviceMute)
+            s.setSpeedSink(::onPlaybackSpeedChanged)
         }
 
         CastBus.session = session
@@ -82,11 +89,10 @@ class ReceiverService : Service() {
         this.server = server
 
         acquireMulticastLock()
-        refreshLanEndpoint(rebindSsdp = false)
 
         val identity = SsdpIdentity(
             uuid = settings.uuid(),
-            location = currentLocationUrl() ?: "",
+            location = "",
             serverToken = serverToken(),
         )
         ssdp = SsdpAgent(
@@ -98,9 +104,13 @@ class ReceiverService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // When MainActivity or BootReceiver calls ReceiverService.start(...) on an
-        // already-running service, re-check the LAN IP in case Wi-Fi came up after boot.
-        refreshLanEndpoint(rebindSsdp = true)
+        when (intent?.action) {
+            ACTION_REANNOUNCE -> ssdp?.reannounce()
+            else -> {
+                // Re-check the LAN IP off the main thread in case Wi-Fi came up after boot.
+                postLanCheck(rebindSsdp = true)
+            }
+        }
         return START_STICKY
     }
 
@@ -153,20 +163,26 @@ class ReceiverService : Service() {
     }
 
     private fun startNetworkMonitoring() {
+        lanWatcher = Executors.newSingleThreadScheduledExecutor { runnable ->
+            Thread(runnable, "leancast-lan").apply { isDaemon = true }
+        }
+        // Perform the initial LAN discovery off the main thread.
+        postLanCheck(rebindSsdp = false)
+
         runCatching {
             val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             connectivityManager = cm
             val callback = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    refreshLanEndpoint(rebindSsdp = true)
+                    postLanCheck(rebindSsdp = true)
                 }
 
                 override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) {
-                    refreshLanEndpoint(rebindSsdp = true)
+                    postLanCheck(rebindSsdp = true)
                 }
 
                 override fun onLost(network: Network) {
-                    refreshLanEndpoint(rebindSsdp = true)
+                    postLanCheck(rebindSsdp = true)
                 }
             }
             networkCallback = callback
@@ -176,15 +192,31 @@ class ReceiverService : Service() {
                 cm?.registerNetworkCallback(NetworkRequest.Builder().build(), callback)
             }
         }
-        // Lightweight fallback poll for TV boxes whose Ethernet/Wi-Fi drivers do
-        // not reliably emit LinkProperties callbacks during boot.
-        lanWatcher = Executors.newSingleThreadScheduledExecutor().also { exec ->
-            exec.scheduleWithFixedDelay(
-                { runCatching { refreshLanEndpoint(rebindSsdp = true) } },
-                3L,
-                5L,
-                TimeUnit.SECONDS,
-            )
+
+        // Adaptive fallback poll: checks every 5 s while offline after boot,
+        // backing off to 60 s once a usable LAN IP is present.
+        scheduleNextLanPoll(OFFLINE_POLL_SEC)
+    }
+
+    private fun postLanCheck(rebindSsdp: Boolean) {
+        val exec = lanWatcher ?: return
+        runCatching {
+            exec.execute { runCatching { refreshLanEndpoint(rebindSsdp) } }
+        }
+    }
+
+    private fun scheduleNextLanPoll(delaySec: Long) {
+        val exec = lanWatcher ?: return
+        runCatching {
+            exec.schedule({
+                runCatching { refreshLanEndpoint(rebindSsdp = true) }
+                val nextDelay = if (LanEndpointPolicy.isUsableLanIp(lastKnownLanIp)) {
+                    ONLINE_POLL_SEC
+                } else {
+                    OFFLINE_POLL_SEC
+                }
+                scheduleNextLanPoll(nextDelay)
+            }, delaySec, TimeUnit.SECONDS)
         }
     }
 
@@ -215,12 +247,16 @@ class ReceiverService : Service() {
         "Android/${Build.VERSION.RELEASE} UPnP/1.0 ${getString(R.string.model_name)}/1"
 
     private fun onTransportStateChanged(state: TransportState) {
-        val launchPlayer = PlayerLaunchPolicy.shouldSurfacePlayer(state)
+        val launchPlayer = PlayerLaunchPolicy.shouldSurfacePlayer(state, playerVisible = CastBus.playerVisible)
         if (launchPlayer) {
             surfacePlayerActivity()
         }
         updateNotification(state, fullScreenLaunch = launchPlayer)
         events.publish("avt", eventBody("avt"))
+    }
+
+    private fun onPlaybackSpeedChanged(@Suppress("UNUSED_PARAMETER") speed: Float) {
+        if (::events.isInitialized) events.publish("avt", eventBody("avt"))
     }
 
     /**
@@ -254,12 +290,13 @@ class ReceiverService : Service() {
 
     /** GENA `LastChange` payload for a service, reflecting the current session. */
     private fun eventBody(service: String): String = when (service) {
-        "rcs" -> LastChangeEvent.renderingControl(session.volume, mute = false)
+        "rcs" -> LastChangeEvent.renderingControl(session.volume, mute = session.muted)
         else -> LastChangeEvent.avTransport(
             transportState = session.state.name,
             currentUri = session.currentUri,
             currentTrackDuration = UpnpTime.renderMsToHms(session.durationMs()),
             isLive = session.isLive(),
+            playbackSpeed = PlaybackSpeedPolicy.formatUpnpSpeed(session.playbackSpeed),
         )
     }
 
@@ -275,11 +312,34 @@ class ReceiverService : Service() {
         if (::events.isInitialized) events.publish("rcs", eventBody("rcs"))
     }
 
+    private fun applyDeviceMute(muted: Boolean) {
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                audioManager.adjustStreamVolume(
+                    AudioManager.STREAM_MUSIC,
+                    if (muted) AudioManager.ADJUST_MUTE else AudioManager.ADJUST_UNMUTE,
+                    0,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.setStreamMute(AudioManager.STREAM_MUSIC, muted)
+            }
+        }
+        if (::events.isInitialized) events.publish("rcs", eventBody("rcs"))
+    }
+
     private fun initialVolumePercent(): Int {
         val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
         val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         return Math.round(current * 100.0 / max).toInt()
     }
+
+    private fun initialMuteState(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            runCatching { audioManager.isStreamMute(AudioManager.STREAM_MUSIC) }.getOrDefault(false)
+        } else {
+            false
+        }
 
     private fun acquireMulticastLock() {
         runCatching {
@@ -297,30 +357,32 @@ class ReceiverService : Service() {
         multicastLock = null
     }
 
+    private fun ensureNotificationChannels() {
+        if (Build.VERSION.SDK_INT < 26) return
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.notif_channel),
+                NotificationManager.IMPORTANCE_LOW,
+            ),
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(
+                PLAYBACK_CHANNEL_ID,
+                getString(R.string.notif_channel),
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                setSound(null, null)
+                enableVibration(false)
+            },
+        )
+    }
+
     private fun buildNotification(
         state: TransportState = TransportState.NO_MEDIA_PRESENT,
         fullScreenLaunch: Boolean = false,
     ): Notification {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= 26) {
-            nm.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    getString(R.string.notif_channel),
-                    NotificationManager.IMPORTANCE_LOW,
-                ),
-            )
-            nm.createNotificationChannel(
-                NotificationChannel(
-                    PLAYBACK_CHANNEL_ID,
-                    getString(R.string.notif_channel),
-                    NotificationManager.IMPORTANCE_HIGH,
-                ).apply {
-                    setSound(null, null)
-                    enableVibration(false)
-                },
-            )
-        }
         val contentPi = if (PlayerLaunchPolicy.shouldSurfacePlayer(state)) {
             playerPendingIntent()
         } else {
@@ -363,6 +425,9 @@ class ReceiverService : Service() {
         private const val NOTIFICATION_ID = 1
         private const val REQUEST_CODE_PLAYER = 2
         private const val PREFERRED_PORT = 49_152
+        private const val OFFLINE_POLL_SEC = 5L
+        private const val ONLINE_POLL_SEC = 60L
+        private const val ACTION_REANNOUNCE = "app.solocraft.leancast.action.REANNOUNCE"
 
         /**
          * Starts the receiver. Uses [Context.startForegroundService] on API 26+ so the
@@ -371,6 +436,16 @@ class ReceiverService : Service() {
          */
         fun start(context: Context) {
             val intent = Intent(context, ReceiverService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+
+        /** Triggers SSDP `byebye` + `alive` re-announcement without interrupting active playback. */
+        fun reannounce(context: Context) {
+            val intent = Intent(context, ReceiverService::class.java).setAction(ACTION_REANNOUNCE)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
             } else {

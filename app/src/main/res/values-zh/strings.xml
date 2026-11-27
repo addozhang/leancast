@@ -2,7 +2,7 @@
 <resources>
     <!-- Pure Simplified Chinese copy -->
     <string name="app_name">LeanCast</string>
-    <string name="app_Tagline">纯净无广告 · 4K 硬件解码投屏接收端</string>
+    <string name="app_tagline">纯净无广告 · 4K 硬件解码投屏接收端</string>
     <string name="manufacturer">LeanCast</string>
     <string name="model_name">LeanCast Receiver</string>
 
@@ -10,9 +10,6 @@
     <string name="notif_title">LeanCast 正在运行</string>
     <string name="notif_text">状态: %1$s</string>
 
-    <string name="status_name">设备名称: %1$s</string>
-    <string name="status_endpoint">监听地址: %1$s</string>
-    <string name="status_state">状态: %1$s %2$s</string>
     <string name="status_service_stopped">服务已停止</string>
     <string name="status_ready">就绪 · 等待投屏</string>
     <string name="status_playing">正在播放</string>
@@ -27,7 +24,6 @@
     <string name="meta_value_protocol">DLNA / UPnP AV</string>
     <string name="meta_label_decoder">解码引擎</string>
     <string name="meta_value_decoder">4K 硬解 · HLS / MP4</string>
-    <string name="pill_codec">4K 硬件解码 · HLS / MP4</string>
 
     <string name="guide_title">快速投屏指南</string>
     <string name="guide_step_1">1. 确保手机与电视连接在同一个局域网 Wi-Fi</string>

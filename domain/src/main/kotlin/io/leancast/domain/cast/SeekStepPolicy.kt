@@ -11,7 +11,7 @@ object SeekStepPolicy {
 
     /** Repeat counts 0-4 -> 10s, 5-9 -> 30s, 10-14 -> 60s, 15-19 -> 120s, 20+ -> 300s. */
     fun stepFor(repeatCount: Int, forward: Boolean = true): Long {
-        val index = (repeatCount / 5).coerceAtMost(LADDER_MS.size - 1)
+        val index = (repeatCount / 5).coerceIn(0, LADDER_MS.size - 1)
         val magnitude = LADDER_MS[index]
         return if (forward) magnitude else -magnitude
     }

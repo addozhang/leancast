@@ -23,25 +23,25 @@ import io.leancast.domain.upnp.MimeInference
  */
 class ExoPlayerPort(private val context: Context) : PlayerPort {
 
-    var session: CastSession? = null
+    @Volatile var session: CastSession? = null
 
     @Volatile private var cachedPositionMs = 0L
     @Volatile private var cachedDurationMs = 0L
     @Volatile private var cachedIsLive = false
     @Volatile private var lastUri: String? = null
+    /** Latest generation requested from any thread; skips superseded queued prepares. */
+    @Volatile private var latestRequestedGeneration: Long = -1L
+    /** Generation actually bound to ExoPlayer on the main thread; stamped onto Player.Listener callbacks. */
+    private var boundPlayerGeneration: Long = -1L
+    @Volatile private var released = false
 
     private val main = Handler(Looper.getMainLooper())
-    private var player: ExoPlayer? = null
+    @Volatile private var player: ExoPlayer? = null
     private val poller = object : Runnable {
         override fun run() {
-            player?.let { p ->
-                cachedPositionMs = p.currentPosition.coerceAtLeast(0)
-                cachedDurationMs =
-                    if (p.duration > 0) p.duration else 0L
-                // Live items report a sliding-window duration; the session turns
-                // that into "unknown" instead of passing the window size on.
-                cachedIsLive = p.isCurrentMediaItemLive
-            }
+            val p = player
+            if (released || p == null) return
+            refreshCacheFrom(p)
             main.postDelayed(this, POLL_MS)
         }
     }
@@ -49,9 +49,19 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
     val currentPlayer: Player? get() = player
 
     override fun prepareAndPlay(uri: String) {
+        if (released) return
+        val gen = session?.mediaGeneration() ?: 0L
+        latestRequestedGeneration = gen
         lastUri = uri
+        // Clear previous item's cached metrics immediately so senders/OSD never
+        // observe stale duration or live-stream flags while the new item prepares.
+        cachedPositionMs = 0L
+        cachedDurationMs = 0L
+        cachedIsLive = false
         main.post {
+            if (released || gen != latestRequestedGeneration) return@post
             val p = obtain()
+            boundPlayerGeneration = gen
             val mime = MimeInference.guessMimeType(uri)
             val item = MediaItem.Builder().setUri(uri).setMimeType(mime).build()
             // Route explicitly: DefaultMediaSourceFactory's inference misses
@@ -72,23 +82,28 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
     }
 
     override fun setPlaybackSpeed(speed: Float) {
-        main.post { player?.setPlaybackSpeed(speed) }
+        main.post { if (!released) player?.setPlaybackSpeed(speed) }
     }
 
     override fun play() {
-        main.post { player?.play() }
+        main.post { if (!released) player?.play() }
     }
 
     override fun pause() {
-        main.post { player?.pause() }
+        main.post { if (!released) player?.pause() }
     }
 
     override fun seekTo(ms: Long) {
-        main.post { player?.seekTo(ms) }
+        main.post { if (!released) player?.seekTo(ms) }
     }
 
     override fun stop() {
-        main.post { player?.stop() }
+        main.post {
+            if (!released) {
+                boundPlayerGeneration = -1L
+                player?.stop()
+            }
+        }
     }
 
     override fun currentPositionMs(): Long = cachedPositionMs
@@ -96,19 +111,31 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
     override fun isLive(): Boolean = cachedIsLive
 
     fun release() {
+        released = true
+        main.removeCallbacks(poller)
         main.post {
+            main.removeCallbacks(poller)
+            boundPlayerGeneration = -1L
             player?.release()
             player = null
         }
-        main.removeCallbacks(poller)
+    }
+
+    private fun refreshCacheFrom(p: ExoPlayer) {
+        cachedPositionMs = p.currentPosition.coerceAtLeast(0)
+        cachedDurationMs = if (p.duration > 0) p.duration else 0L
+        // Live items report a sliding-window duration; the session turns
+        // that into "unknown" instead of passing the window size on.
+        cachedIsLive = p.isCurrentMediaItemLive
     }
 
     private fun obtain(): ExoPlayer =
         player ?: buildPlayer().also { created ->
             player = created
-            cachedPositionMs = 0
-            cachedDurationMs = 0
+            cachedPositionMs = 0L
+            cachedDurationMs = 0L
             cachedIsLive = false
+            main.removeCallbacks(poller)
             main.post(poller)
         }
 
@@ -133,17 +160,25 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
             .also { p ->
                 p.addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (playbackState == Player.STATE_READY) session?.onPlayerPrepared()
-                        if (playbackState == Player.STATE_ENDED) session?.stop()
+                        val gen = boundPlayerGeneration
+                        if (gen < 0L) return
+                        if (playbackState == Player.STATE_READY) {
+                            refreshCacheFrom(p)
+                            session?.onPlayerPrepared(gen)
+                        }
+                        if (playbackState == Player.STATE_ENDED) {
+                            session?.onPlayerEnded(gen)
+                        }
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
+                        val gen = boundPlayerGeneration
                         Log.e(
                             TAG,
                             "playback error ${error.errorCodeName} uri=$lastUri",
                             error,
                         )
-                        session?.onPlayerError()
+                        if (gen >= 0L) session?.onPlayerError(gen)
                     }
 
                     // Field diagnostics for "audio but no video" reports:

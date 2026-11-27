@@ -100,7 +100,7 @@ Enable network debugging on the receiver, then run on your computer (use the por
 ```bash
 adb connect <TV-IP>:5555
 adb install -r LeanCast-<version>.apk
-adb shell am start -n io.leancast/io.leancast.app.MainActivity
+adb shell am start -n app.solocraft.leancast/io.leancast.app.MainActivity
 ```
 
 ## Resource usage

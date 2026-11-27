@@ -16,7 +16,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
-import java.util.concurrent.Executors
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * HTTP control plane: device description, SCPDs, SOAP control endpoints and
@@ -35,11 +39,23 @@ class ControlServer(
     private val events: SubscriptionRegistry,
     private val eventBody: (String) -> String,
     private val serverToken: String,
+    private val callbackParser: (String?) -> List<String> = { SubscriptionRegistry.parseCallbacks(it) },
 ) {
 
     @Volatile private var socket: ServerSocket? = null
     @Volatile private var running = false
-    private val workers = Executors.newCachedThreadPool()
+    private val workerSeq = AtomicInteger(1)
+    private val workers = ThreadPoolExecutor(
+        CORE_WORKERS,
+        MAX_WORKERS,
+        WORKER_KEEP_ALIVE_SEC,
+        TimeUnit.SECONDS,
+        ArrayBlockingQueue(MAX_QUEUED_CONNECTIONS),
+    ) { runnable ->
+        Thread(runnable, "leancast-http-${workerSeq.getAndIncrement()}").apply { isDaemon = true }
+    }.apply {
+        allowCoreThreadTimeOut(true)
+    }
 
     /** True-bound port (differs from requested when falling back to ephemeral). */
     var boundPort: Int = 0
@@ -50,7 +66,7 @@ class ControlServer(
         socket = bound
         boundPort = bound.localPort
         running = true
-        Thread({ acceptLoop(bound) }, "leancast-http").apply { isDaemon = true }.start()
+        Thread({ acceptLoop(bound) }, "leancast-http-accept").apply { isDaemon = true }.start()
         Log.i(TAG, "control server listening on $boundPort")
     }
 
@@ -79,7 +95,12 @@ class ControlServer(
                 if (running) Log.w(TAG, "accept failed: ${e.javaClass.simpleName}")
                 break
             }
-            workers.execute { serve(client) }
+            try {
+                workers.execute { serve(client) }
+            } catch (_: RejectedExecutionException) {
+                Log.w(TAG, "http worker pool saturated, dropping connection")
+                runCatching { client.close() }
+            }
         }
     }
 
@@ -97,7 +118,18 @@ class ControlServer(
             val method = requestLine[0].uppercase(Locale.US)
             val path = requestLine[1].substringBefore('?').trimEnd('/')
             val headers = headersOf(lines)
-            val bodyLength = headers["content-length"]?.toIntOrNull()?.coerceIn(0, MAX_BODY) ?: 0
+            val rawLength = headers["content-length"]?.toLongOrNull()
+            if (rawLength != null && rawLength > MAX_BODY) {
+                respond(client, Status.PAYLOAD_TOO_LARGE, TEXT, ByteArray(0))
+                return
+            }
+            val bodyLength = (rawLength ?: 0L).coerceAtLeast(0L).toInt()
+            if (bodyLength > 0 && headers["expect"]?.equals("100-continue", ignoreCase = true) == true) {
+                client.getOutputStream().apply {
+                    write(CONTINUE_100)
+                    flush()
+                }
+            }
             val body = readBody(input, bodyLength)
 
             val response = dispatch(method, path, headers, body)
@@ -106,6 +138,7 @@ class ControlServer(
                 "$method $path -> ${response.status.code}${response.logDetail?.let { " $it" } ?: ""}",
             )
             respond(client, response.status, response.contentType, response.body, response.extra, method == "HEAD")
+            response.afterSend?.invoke()
         } catch (e: Exception) {
             Log.d(TAG, "request failed: ${e.javaClass.simpleName}: ${e.message}")
         } finally {
@@ -119,6 +152,7 @@ class ControlServer(
         val body: ByteArray,
         val extra: Map<String, String> = emptyMap(),
         val logDetail: String? = null,
+        val afterSend: (() -> Unit)? = null,
     )
 
     private fun dispatch(method: String, path: String, headers: Map<String, String>, body: String): Response =
@@ -142,7 +176,15 @@ class ControlServer(
         val soapAction = headers["soapaction"]
         val result = router.route(SoapParser.parse(soapAction, body))
         val action = soapAction?.substringAfterLast('#')?.trim('"')
-        val status = Status.fromCode(result.httpStatus)
+        // UPnP Device Architecture §3.2.2 specifies HTTP 500 for UPnP SOAP faults
+        // (such as UPnP error code 401 Invalid Action); map 401 explicitly rather
+        // than relying on an enum fallback.
+        val status = when (result.httpStatus) {
+            200 -> Status.OK
+            400 -> Status.BAD_REQUEST
+            401 -> Status.SERVER_ERROR
+            else -> Status.fromCode(result.httpStatus)
+        }
         return Response(
             status,
             XML,
@@ -156,14 +198,14 @@ class ControlServer(
     }
 
     /**
-     * SUBSCRIBE creates a subscription and immediately pushes the mandatory
-     * initial event (SEQ 0); a request carrying only SID renews; UNSUBSCRIBE
-     * drops it. Responding 200 with a SID but never notifying is what leaves
-     * senders stuck on "connecting".
+     * SUBSCRIBE creates a subscription and pushes the mandatory initial event
+     * (SEQ 0) strictly *after* the 200 OK response carrying `SID` is flushed to
+     * the client, avoiding a race where `NOTIFY` arrives before the sender knows
+     * its own `SID`. A request carrying only SID renews; UNSUBSCRIBE drops it.
      */
     private fun serveEvent(method: String, path: String, headers: Map<String, String>): Response {
         val sid = headers["sid"]
-        val callbacks = SubscriptionRegistry.parseCallbacks(headers["callback"])
+        val callbacks = callbackParser(headers["callback"])
         val timeout = SubscriptionRegistry.parseTimeout(headers["timeout"])
 
         if (method == "UNSUBSCRIBE") {
@@ -193,13 +235,14 @@ class ControlServer(
 
         val service = path.substringAfterLast('/')
         val newSid = events.subscribe(service, callbacks, timeout)
-        events.publishInitial(newSid, eventBody(service))
+        val initialBody = eventBody(service)
         return Response(
             Status.OK,
             TEXT,
             ByteArray(0),
             extra = genaHeaders(newSid, timeout),
             logDetail = "subscribe service=$service callback=${callbacks.first()}",
+            afterSend = { events.publishInitial(newSid, initialBody) },
         )
     }
 
@@ -278,6 +321,7 @@ class ControlServer(
         NOT_FOUND(404, "Not Found"),
         METHOD_NOT_ALLOWED(405, "Method Not Allowed"),
         PRECONDITION_FAILED(412, "Precondition Failed"),
+        PAYLOAD_TOO_LARGE(413, "Payload Too Large"),
         SERVER_ERROR(500, "Internal Server Error"),
         ;
 
@@ -295,6 +339,11 @@ class ControlServer(
         private const val MAX_BODY = 256 * 1024
         private const val SOCKET_TIMEOUT_MS = 10_000
         private const val CRLFCRLF = 0x0D0A0D0A
+        private const val CORE_WORKERS = 4
+        private const val MAX_WORKERS = 16
+        private const val WORKER_KEEP_ALIVE_SEC = 60L
+        private const val MAX_QUEUED_CONNECTIONS = 64
+        private val CONTINUE_100 = "HTTP/1.1 100 Continue\r\n\r\n".toByteArray(Charsets.ISO_8859_1)
 
         /** Starts on [preferredPort], falling back to an ephemeral port. */
         fun startWithFallback(

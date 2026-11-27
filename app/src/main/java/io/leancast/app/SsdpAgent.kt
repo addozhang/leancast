@@ -18,10 +18,14 @@ import java.util.concurrent.TimeUnit
  * SSDP network agent: joins the multicast group, answers M-SEARCHes with
  * MX-paced unicast replies, and multicasts alive/byebye notifications.
  *
+ * All socket bind/join/send operations run on background threads so calling
+ * [start], [rebindToActiveNetwork], [reannounce], or [stop] from the Android
+ * main thread never triggers `NetworkOnMainThreadException` or ANRs.
+ *
  * Resilient to boot-time races where `BOOT_COMPLETED` fires before Wi-Fi or
- * Ethernet gets a DHCP lease: [rebindIfNeeded] re-joins multicast on the active
- * LAN interface and emits a fresh burst of `ssdp:alive` advertisements as soon
- * as a LAN IPv4 address becomes available or changes.
+ * Ethernet gets a DHCP lease: [rebindToActiveNetwork] re-joins multicast on the
+ * active LAN interface and emits a fresh burst of `ssdp:alive` advertisements as
+ * soon as a LAN IPv4 address becomes available or changes.
  */
 class SsdpAgent(
     private val identity: SsdpIdentity,
@@ -35,13 +39,20 @@ class SsdpAgent(
     @Volatile private var socket: MulticastSocket? = null
     @Volatile private var joinedIp: String? = null
     private var listenThread: Thread? = null
-    private val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { runnable ->
+        Thread(runnable, "ssdp-scheduler").apply { isDaemon = true }
+    }
 
     fun start() {
         if (running) return
         running = true
-        val group = InetAddress.getByName(GROUP)
-        openAndJoinSocket(group)
+        val group = InetAddress.getByAddress(GROUP_BYTES)
+
+        scheduler.execute {
+            if (!running) return@execute
+            openAndJoinSocket(group)
+            announceAliveBurst(group)
+        }
 
         listenThread = Thread {
             val buf = ByteArray(2048)
@@ -75,8 +86,6 @@ class SsdpAgent(
             start()
         }
 
-        announceAliveBurst(group)
-
         // Periodic refresh at max-age/2.
         val refreshSec = (identity.maxAgeSeconds / 2).toLong().coerceAtLeast(30L)
         scheduler.scheduleAtFixedRate(
@@ -90,14 +99,35 @@ class SsdpAgent(
     /**
      * Called when the device's LAN IPv4 address becomes available after boot or
      * switches interfaces. Re-creates and re-joins the multicast socket on the
-     * active LAN interface and sends an `ssdp:alive` burst.
+     * active LAN interface and sends an `ssdp:alive` burst off the caller thread.
      */
-    @Synchronized
     fun rebindToActiveNetwork() {
         if (!running) return
-        val group = runCatching { InetAddress.getByName(GROUP) }.getOrNull() ?: return
-        openAndJoinSocket(group, forceRecreate = true)
-        announceAliveBurst(group)
+        val group = InetAddress.getByAddress(GROUP_BYTES)
+        runCatching {
+            scheduler.execute {
+                if (!running) return@execute
+                openAndJoinSocket(group, forceRecreate = true)
+                announceAliveBurst(group)
+            }
+        }
+    }
+
+    /**
+     * Sends `ssdp:byebye` followed by a fresh `ssdp:alive` burst so senders
+     * re-fetch `/desc.xml` (e.g. after the user renames the receiver) without
+     * restarting the service or interrupting active playback.
+     */
+    fun reannounce() {
+        if (!running) return
+        val group = InetAddress.getByAddress(GROUP_BYTES)
+        runCatching {
+            scheduler.execute {
+                if (!running) return@execute
+                multicast(responder.byebyeMessages(), group)
+                announceAliveBurst(group, initialDelayMs = REANNOUNCE_GAP_MS)
+            }
+        }
     }
 
     @Synchronized
@@ -141,29 +171,36 @@ class SsdpAgent(
         runCatching { sock.joinGroup(group) }
     }
 
-    private fun announceAliveBurst(group: InetAddress) {
+    private fun announceAliveBurst(group: InetAddress, initialDelayMs: Long = 0L) {
         // UPnP recommends several announcements at startup / network acquire.
         repeat(3) { burst ->
-            scheduler.schedule({
-                multicast(responder.aliveMessages(), group)
-            }, burst * 350L, TimeUnit.MILLISECONDS)
+            runCatching {
+                scheduler.schedule({
+                    if (running) multicast(responder.aliveMessages(), group)
+                }, initialDelayMs + burst * 350L, TimeUnit.MILLISECONDS)
+            }
         }
     }
 
     fun stop() {
         if (!running) return
         running = false
-        socket?.let { sock ->
-            runCatching {
-                val group = InetAddress.getByName(GROUP)
-                responder.byebyeMessages().forEach { bytes ->
-                    runCatching { sock.send(DatagramPacket(bytes, bytes.size, group, PORT)) }
+        val sock = socket
+        if (sock != null && !sock.isClosed) {
+            val group = InetAddress.getByAddress(GROUP_BYTES)
+            // Send byebye off the caller (Android main) thread so it never hits NetworkOnMainThreadException.
+            val byebyeTask = runCatching {
+                scheduler.submit {
+                    responder.byebyeMessages().forEach { bytes ->
+                        runCatching { sock.send(DatagramPacket(bytes, bytes.size, group, PORT)) }
+                    }
                 }
-            }
+            }.getOrNull()
+            runCatching { byebyeTask?.get(BYEBYE_WAIT_MS, TimeUnit.MILLISECONDS) }
         }
         scheduler.shutdownNow()
         listenThread?.interrupt()
-        runCatching { socket?.close() }
+        runCatching { sock?.close() }
         socket = null
         joinedIp = null
     }
@@ -172,15 +209,17 @@ class SsdpAgent(
         val responses = responder.responsesFor(msg)
         if (responses.isEmpty()) return
         val delayMs = responder.responseDelayMs(msg.mxSeconds)
-        scheduler.schedule({
-            val sock = socket ?: return@schedule
-            responses.forEach { bytes ->
-                runCatching {
-                    val target = InetSocketAddress(msg.from, msg.fromPort)
-                    sock.send(DatagramPacket(bytes, bytes.size, target))
+        runCatching {
+            scheduler.schedule({
+                val sock = socket ?: return@schedule
+                responses.forEach { bytes ->
+                    runCatching {
+                        val target = InetSocketAddress(msg.from, msg.fromPort)
+                        sock.send(DatagramPacket(bytes, bytes.size, target))
+                    }
                 }
-            }
-        }, delayMs, TimeUnit.MILLISECONDS)
+            }, delayMs, TimeUnit.MILLISECONDS)
+        }
     }
 
     private fun multicast(messages: List<ByteArray>, group: InetAddress) {
@@ -196,6 +235,9 @@ class SsdpAgent(
     companion object {
         private const val TAG = "LeanCastSsdp"
         const val GROUP = "239.255.255.250"
+        private val GROUP_BYTES = byteArrayOf(239.toByte(), 255.toByte(), 255.toByte(), 250.toByte())
         const val PORT = 1900
+        private const val BYEBYE_WAIT_MS = 300L
+        private const val REANNOUNCE_GAP_MS = 150L
     }
 }

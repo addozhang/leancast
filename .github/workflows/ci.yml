@@ -25,8 +25,8 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
-      - name: Domain unit tests
-        run: ./gradlew :domain:test --no-daemon
+      - name: Domain and app unit tests
+        run: ./gradlew :domain:test :app:testDebugUnitTest --no-daemon
 
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --no-daemon

@@ -72,23 +72,30 @@ object SoapResponses {
         )
     }
 
-    fun getTransportInfo(state: String): String = envelope(
+    @JvmOverloads
+    fun getTransportInfo(state: String, currentSpeed: String = "1"): String = envelope(
         """
         <u:GetTransportInfoResponse xmlns:u="${UpnpService.AVT.serviceType}">
           <CurrentTransportState>$state</CurrentTransportState>
           <CurrentTransportStatus>OK</CurrentTransportStatus>
-          <CurrentSpeed>1</CurrentSpeed>
+          <CurrentSpeed>${XmlUtil.escape(currentSpeed)}</CurrentSpeed>
         </u:GetTransportInfoResponse>
         """.trimIndent(),
     )
 
-    fun getMediaInfo(nrTracks: Int, durationMs: Long, currentUri: String?): String = envelope(
+    @JvmOverloads
+    fun getMediaInfo(
+        nrTracks: Int,
+        durationMs: Long,
+        currentUri: String?,
+        currentUriMetaData: String? = null,
+    ): String = envelope(
         """
         <u:GetMediaInfoResponse xmlns:u="${UpnpService.AVT.serviceType}">
           <NrTracks>$nrTracks</NrTracks>
           <MediaDuration>${UpnpTime.renderMsToHms(durationMs)}</MediaDuration>
           <CurrentURI>${XmlUtil.escape(currentUri)}</CurrentURI>
-          <CurrentURIMetaData></CurrentURIMetaData>
+          <CurrentURIMetaData>${XmlUtil.escape(currentUriMetaData)}</CurrentURIMetaData>
         </u:GetMediaInfoResponse>
         """.trimIndent(),
     )

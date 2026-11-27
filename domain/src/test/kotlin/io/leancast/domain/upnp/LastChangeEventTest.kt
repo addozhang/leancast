@@ -81,4 +81,17 @@ class LastChangeEventTest {
         val inner = parse(body).getElementsByTagName("LastChange").item(0).textContent
         assertTrue(inner.contains("CurrentTransportActions val=\"Pause,Stop\""))
     }
+
+    @Test
+    fun `avTransport event includes current playback speed`() {
+        val body = LastChangeEvent.avTransport(
+            transportState = "PLAYING",
+            currentUri = "http://h/v.mp4",
+            currentTrackDuration = "0:10:00",
+            playbackSpeed = "1.5",
+        )
+        val inner = parse(body).getElementsByTagName("LastChange").item(0).textContent
+        parse(inner)
+        assertTrue(inner.contains("<TransportPlaySpeed val=\"1.5\"/>"))
+    }
 }

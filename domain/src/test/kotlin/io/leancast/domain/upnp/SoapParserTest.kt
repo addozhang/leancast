@@ -80,6 +80,45 @@ class SoapParserTest {
     }
 
     @Test
+    fun `arguments are extracted even when body action lacks service namespace`() {
+        val bodyWithoutNs = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+              <s:Body>
+                <SetAVTransportURI>
+                  <InstanceID>0</InstanceID>
+                  <CurrentURI>http://example.com/no-ns.mp4</CurrentURI>
+                  <CurrentURIMetaData>META</CurrentURIMetaData>
+                </SetAVTransportURI>
+              </s:Body>
+            </s:Envelope>
+        """.trimIndent()
+        val req = SoapParser.parse(
+            "\"urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI\"",
+            bodyWithoutNs,
+        )
+        assertEquals(UpnpService.AVT, req?.service)
+        assertEquals("SetAVTransportURI", req?.action)
+        assertEquals("http://example.com/no-ns.mp4", req?.args?.get("CurrentURI"))
+        assertEquals("META", req?.args?.get("CurrentURIMetaData"))
+    }
+
+    @Test
+    fun `unescaped embedded DIDL with ampersand in attribute remains valid XML`() {
+        val raw = soapBody(
+            "SetAVTransportURI",
+            "urn:schemas-upnp-org:service:AVTransport:1",
+            "<InstanceID>0</InstanceID><CurrentURI>http://example.com/v.mp4</CurrentURI>" +
+                "<CurrentURIMetaData><DIDL-Lite><item id=\"a&amp;b\"><title>Clip</title></item></DIDL-Lite></CurrentURIMetaData>",
+        )
+        val req = SoapParser.parse(
+            "\"urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI\"",
+            raw,
+        )
+        assertEquals("Clip", DidlParser.extractTitle(req?.args?.get("CurrentURIMetaData")))
+    }
+
+    @Test
     fun `malformed body returns null`() {
         assertNull(SoapParser.parse(null, "this is not xml"))
         assertNull(SoapParser.parse(null, ""))

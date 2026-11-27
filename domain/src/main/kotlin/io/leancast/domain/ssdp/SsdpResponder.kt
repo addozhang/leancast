@@ -65,8 +65,8 @@ class SsdpResponder(
         return random.nextInt(boundSeconds * 1000 + 1).toLong()
     }
 
-    private fun targetsFor(st: String): List<SsdpTarget> = when (st) {
-        "ssdp:all" -> SsdpTarget.entries.toList()
+    private fun targetsFor(st: String): List<SsdpTarget> = when {
+        st.equals("ssdp:all", ignoreCase = true) -> SsdpTarget.entries.toList()
         else -> SsdpTarget.entries.filter { it.nt == st }
     }
 
