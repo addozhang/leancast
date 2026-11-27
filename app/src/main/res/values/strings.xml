@@ -2,7 +2,7 @@
 <resources>
     <!-- Pure English copy -->
     <string name="app_name">LeanCast</string>
-    <string name="app_tagline">Ad-Free DLNA / UPnP Cast Receiver</string>
+    <string name="app_tagline">Ad-Free DLNA / UPnP Receiver</string>
     <string name="manufacturer">LeanCast</string>
     <string name="model_name">LeanCast Receiver</string>
 
@@ -15,48 +15,66 @@
     <string name="status_playing">PLAYING</string>
     <string name="status_paused">PAUSED</string>
     <string name="status_loading">BUFFERING</string>
+    <string name="status_error">LOAD FAILED</string>
 
-    <string name="label_device_name">DEVICE NAME</string>
-    <string name="label_now_playing">CURRENT SESSION</string>
-    <string name="label_idle_hint">Ready to receive casts from your phone…</string>
-    <string name="meta_label_endpoint">ENDPOINT</string>
-    <string name="meta_label_protocol">PROTOCOL</string>
-    <string name="meta_value_protocol">DLNA / UPnP AV</string>
-    <string name="meta_label_decoder">DECODER</string>
-    <string name="meta_value_decoder">4K HW · HLS / MP4</string>
+    <string name="label_device_name">SELECT IN YOUR VIDEO APP</string>
+    <string name="label_now_playing">STATUS</string>
+    <string name="label_idle_hint">Listening on LAN. Tap the [TV] cast icon in any video app to start streaming.</string>
+    <string name="meta_spec_summary">DLNA / UPnP AV · 4K HW Decode</string>
+    <string name="error_playback_title">Unable to load stream (%1$s)</string>
+    <string name="error_playback_desc">The stream host rejected or failed direct TV playback. Retry from your phone or switch quality.</string>
 
     <string name="guide_title">QUICK START</string>
-    <string name="guide_step_1">1. Connect your phone and TV to the same Wi-Fi</string>
-    <string name="guide_step_2">2. Tap the [TV] cast icon inside any video app</string>
-    <string name="guide_step_3">3. Select "%1$s" to start streaming immediately</string>
+    <string name="guide_step_1">Connect phone &amp; TV to the same Wi-Fi</string>
+    <string name="guide_step_2">Tap [TV] cast icon inside any video app</string>
+    <string name="guide_step_3">Pick "%1$s" for instant fullscreen playback</string>
 
     <string name="section_controls">PREFERENCES</string>
     <string name="setting_rename">Device Name</string>
-    <string name="setting_rename_desc">Customize how this TV appears in cast lists</string>
+    <string name="setting_rename_desc">Name shown in phone cast lists</string>
+    <string name="rename_modal_title">Rename Cast Receiver</string>
+    <string name="rename_modal_sub">Updates immediately over SSDP without stopping playback</string>
+    <string name="rename_presets_label">QUICK D-PAD PRESETS</string>
+    <string name="preset_name_1">Living Room TV</string>
+    <string name="preset_name_2">Bedroom TV</string>
+    <string name="preset_name_3">Studio Projector</string>
+    <string name="preset_name_4">LeanCast</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
+
     <string name="setting_autostart">Launch at Startup</string>
-    <string name="setting_autostart_on">Start automatically when TV powers on</string>
+    <string name="setting_autostart_on">Start silently when TV powers on</string>
     <string name="setting_autostart_on_overlay_hint">Enabled · Grant "Display over other apps" if cast screen does not pop up</string>
     <string name="setting_autostart_off">Start only when LeanCast is opened</string>
     <string name="action_toggle_service">Cast Service</string>
     <string name="action_service_running">Listening on LAN · Press OK to stop</string>
-    <string name="action_service_stopped">Service stopped · Press OK to start</string>
+    <string name="action_service_stopped">Paused · Press OK to resume</string>
     <string name="setting_language">Language</string>
     <string name="setting_language_desc">English · Press OK to switch to 简体中文</string>
     <string name="setting_language_pill">EN</string>
-    <string name="action_resume_player">Now Playing</string>
-    <string name="action_resume_player_desc">Return to fullscreen video playback</string>
+    <string name="action_resume_player">Resume Fullscreen</string>
+    <string name="action_resume_player_desc">Playing in background · Press OK to return</string>
 
-    <string name="pill_live">PLAYING</string>
+    <string name="pill_live">LIVE</string>
     <string name="pill_edit">RENAME</string>
     <string name="pill_on">ON</string>
     <string name="pill_off">OFF</string>
     <string name="pill_active">ONLINE</string>
     <string name="pill_stopped">STOPPED</string>
 
-    <string name="osd_paused">⏸  Paused</string>
-    <string name="osd_playing">▶  Playing</string>
-    <string name="osd_loading">⏳  Buffering…</string>
-    <string name="osd_live">● LIVE</string>
-    <string name="osd_legend">OK Play / Pause    ·    ◀ ▶ Seek (Hold to Fast-Forward)    ·    ▼ Speed    ·    Back Exit</string>
-    <string name="osd_legend_live">OK Play / Pause    ·    Back Exit</string>
+    <string name="osd_paused">Paused</string>
+    <string name="osd_playing">Playing</string>
+    <string name="osd_loading">Buffering…</string>
+    <string name="osd_live">LIVE</string>
+    <string name="osd_muted">Muted</string>
+    <string name="osd_watched">Watched</string>
+    <string name="osd_speed_label">Playback Speed</string>
+    <string name="key_ok">OK</string>
+    <string name="key_seek">◀ ▶</string>
+    <string name="key_speed">▼</string>
+    <string name="key_back">Back</string>
+    <string name="legend_play_pause">Play / Pause</string>
+    <string name="legend_seek">Seek (Hold to Accelerate)</string>
+    <string name="legend_speed">Speed</string>
+    <string name="legend_exit">Exit</string>
 </resources>

@@ -19,8 +19,8 @@ android {
         applicationId = "app.solocraft.leancast"
         minSdk = 21
         targetSdk = 28
-        versionCode = ciVersionCode ?: 11
-        versionName = ciVersionName ?: "0.2.8-beta.1"
+        versionCode = ciVersionCode ?: 12
+        versionName = ciVersionName ?: "0.3.0"
     }
 
     signingConfigs {

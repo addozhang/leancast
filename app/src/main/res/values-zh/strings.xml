@@ -2,7 +2,7 @@
 <resources>
     <!-- Pure Simplified Chinese copy -->
     <string name="app_name">LeanCast</string>
-    <string name="app_tagline">纯净无广告 · 4K 硬件解码投屏接收端</string>
+    <string name="app_tagline">极简无广告投屏接收端</string>
     <string name="manufacturer">LeanCast</string>
     <string name="model_name">LeanCast Receiver</string>
 
@@ -10,53 +10,71 @@
     <string name="notif_title">LeanCast 正在运行</string>
     <string name="notif_text">状态: %1$s</string>
 
-    <string name="status_service_stopped">服务已停止</string>
-    <string name="status_ready">就绪 · 等待投屏</string>
+    <string name="status_service_stopped">已停止</string>
+    <string name="status_ready">就绪</string>
     <string name="status_playing">正在播放</string>
     <string name="status_paused">已暂停</string>
     <string name="status_loading">正在缓冲</string>
+    <string name="status_error">连接异常</string>
 
-    <string name="label_device_name">投屏设备名称</string>
-    <string name="label_now_playing">当前投屏状态</string>
-    <string name="label_idle_hint">正在局域网待命，随时接收手机视频投屏…</string>
-    <string name="meta_label_endpoint">监听地址</string>
-    <string name="meta_label_protocol">通信协议</string>
-    <string name="meta_value_protocol">DLNA / UPnP AV</string>
-    <string name="meta_label_decoder">解码引擎</string>
-    <string name="meta_value_decoder">4K 硬解 · HLS / MP4</string>
+    <string name="label_device_name">在手机投屏列表中选择</string>
+    <string name="label_now_playing">当前状态</string>
+    <string name="label_idle_hint">正在局域网待命，打开任意视频 App 点击 [TV] 即可直连播放</string>
+    <string name="meta_spec_summary">DLNA / UPnP AV · 4K 硬解</string>
+    <string name="error_playback_title">无法加载视频流（%1$s）</string>
+    <string name="error_playback_desc">片源拒绝了电视端直接访问或解码失败，请在手机端重试或切换清晰度</string>
 
-    <string name="guide_title">快速投屏指南</string>
-    <string name="guide_step_1">1. 确保手机与电视连接在同一个局域网 Wi-Fi</string>
-    <string name="guide_step_2">2. 在任意视频 App 中点击右上角的 [TV] 投屏图标</string>
-    <string name="guide_step_3">3. 选择「%1$s」即可直连播放，全程零广告</string>
+    <string name="guide_title">快速投屏</string>
+    <string name="guide_step_1">手机与电视连接同一 Wi-Fi</string>
+    <string name="guide_step_2">在视频 App 播放页点击 [TV] 图标</string>
+    <string name="guide_step_3">选择「%1$s」即刻全屏播放</string>
 
-    <string name="section_controls">偏好设置与控制</string>
+    <string name="section_controls">偏好与控制</string>
     <string name="setting_rename">设备名称</string>
-    <string name="setting_rename_desc">修改手机端投屏列表中显示的电视名称</string>
-    <string name="setting_autostart">开机自启</string>
-    <string name="setting_autostart_on">电视开机后自动在后台静默开启投屏服务</string>
-    <string name="setting_autostart_on_overlay_hint">已开启 · 建议授予「悬浮窗/上层显示」权限以支持后台自动弹出播放页</string>
-    <string name="setting_autostart_off">仅在手动打开 LeanCast 时开启投屏服务</string>
-    <string name="action_toggle_service">投屏服务</string>
-    <string name="action_service_running">正在局域网监听 · 按确定键停止</string>
-    <string name="action_service_stopped">服务已暂停 · 按确定键重新开启</string>
-    <string name="setting_language">界面语言</string>
-    <string name="setting_language_desc">简体中文 · 按确定键切换为 English</string>
-    <string name="setting_language_pill">中文</string>
-    <string name="action_resume_player">返回播放</string>
-    <string name="action_resume_player_desc">按确定键回到正在播放的全屏视频</string>
+    <string name="setting_rename_desc">修改投屏列表中显示的电视名称</string>
+    <string name="rename_modal_title">修改投屏设备名称</string>
+    <string name="rename_modal_sub">修改后立即生效，不会中断正在播放的视频</string>
+    <string name="rename_presets_label">遥控器快捷预设</string>
+    <string name="preset_name_1">客厅电视</string>
+    <string name="preset_name_2">卧室电视</string>
+    <string name="preset_name_3">书房投影</string>
+    <string name="preset_name_4">LeanCast</string>
+    <string name="btn_save">保存</string>
+    <string name="btn_cancel">取消</string>
 
-    <string name="pill_live">播放中</string>
+    <string name="setting_autostart">开机自启</string>
+    <string name="setting_autostart_on">开机自动后台待命，随时可投</string>
+    <string name="setting_autostart_on_overlay_hint">已开启 · 建议授予「悬浮窗/上层显示」权限以支持后台弹出</string>
+    <string name="setting_autostart_off">仅在打开 LeanCast 时开启</string>
+    <string name="action_toggle_service">投屏服务</string>
+    <string name="action_service_running">局域网监听中 · 按确定键停止</string>
+    <string name="action_service_stopped">服务已暂停 · 按确定键开启</string>
+    <string name="setting_language">界面语言</string>
+    <string name="setting_language_desc">当前简体中文 · 按确定键切换 English</string>
+    <string name="setting_language_pill">中文</string>
+    <string name="action_resume_player">返回全屏播放</string>
+    <string name="action_resume_player_desc">正在后台继续播放 · 按确定键回到画面</string>
+
+    <string name="pill_live">直播</string>
     <string name="pill_edit">修改</string>
     <string name="pill_on">已开启</string>
     <string name="pill_off">已关闭</string>
     <string name="pill_active">运行中</string>
     <string name="pill_stopped">已停止</string>
 
-    <string name="osd_paused">⏸  已暂停</string>
-    <string name="osd_playing">▶  继续播放</string>
-    <string name="osd_loading">⏳  正在缓冲…</string>
-    <string name="osd_live">● 直播</string>
-    <string name="osd_legend">确定键 暂停/播放    ·    左右键 快退/快进（长按加速）    ·    下键 倍速    ·    返回键 退出播放</string>
-    <string name="osd_legend_live">确定键 暂停/播放    ·    返回键 退出播放</string>
+    <string name="osd_paused">已暂停</string>
+    <string name="osd_playing">继续播放</string>
+    <string name="osd_loading">正在缓冲…</string>
+    <string name="osd_live">直播</string>
+    <string name="osd_muted">已静音</string>
+    <string name="osd_watched">已观看</string>
+    <string name="osd_speed_label">播放倍速</string>
+    <string name="key_ok">OK</string>
+    <string name="key_seek">◀ ▶</string>
+    <string name="key_speed">▼</string>
+    <string name="key_back">返回</string>
+    <string name="legend_play_pause">暂停/播放</string>
+    <string name="legend_seek">快退/快进（长按加速）</string>
+    <string name="legend_speed">倍速</string>
+    <string name="legend_exit">退出</string>
 </resources>

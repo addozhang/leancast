@@ -9,6 +9,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import io.leancast.domain.cast.CastSession
@@ -27,6 +28,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
 
     @Volatile private var cachedPositionMs = 0L
     @Volatile private var cachedDurationMs = 0L
+    @Volatile private var cachedBufferedPositionMs = 0L
     @Volatile private var cachedIsLive = false
     @Volatile private var lastUri: String? = null
     /** Latest generation requested from any thread; skips superseded queued prepares. */
@@ -57,6 +59,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
         // observe stale duration or live-stream flags while the new item prepares.
         cachedPositionMs = 0L
         cachedDurationMs = 0L
+        cachedBufferedPositionMs = 0L
         cachedIsLive = false
         main.post {
             if (released || gen != latestRequestedGeneration) return@post
@@ -108,6 +111,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
 
     override fun currentPositionMs(): Long = cachedPositionMs
     override fun currentDurationMs(): Long = cachedDurationMs
+    override fun currentBufferedPositionMs(): Long = cachedBufferedPositionMs
     override fun isLive(): Boolean = cachedIsLive
 
     fun release() {
@@ -124,6 +128,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
     private fun refreshCacheFrom(p: ExoPlayer) {
         cachedPositionMs = p.currentPosition.coerceAtLeast(0)
         cachedDurationMs = if (p.duration > 0) p.duration else 0L
+        cachedBufferedPositionMs = p.bufferedPosition.coerceAtLeast(0)
         // Live items report a sliding-window duration; the session turns
         // that into "unknown" instead of passing the window size on.
         cachedIsLive = p.isCurrentMediaItemLive
@@ -134,6 +139,7 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
             player = created
             cachedPositionMs = 0L
             cachedDurationMs = 0L
+            cachedBufferedPositionMs = 0L
             cachedIsLive = false
             main.removeCallbacks(poller)
             main.post(poller)
@@ -173,12 +179,13 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
 
                     override fun onPlayerError(error: PlaybackException) {
                         val gen = boundPlayerGeneration
+                        val reason = summarizeError(error)
                         Log.e(
                             TAG,
-                            "playback error ${error.errorCodeName} uri=$lastUri",
+                            "playback error ${error.errorCodeName} ($reason) uri=$lastUri",
                             error,
                         )
-                        if (gen >= 0L) session?.onPlayerError(gen)
+                        if (gen >= 0L) session?.onPlayerError(gen, reason)
                     }
 
                     // Field diagnostics for "audio but no video" reports:
@@ -200,6 +207,21 @@ class ExoPlayerPort(private val context: Context) : PlayerPort {
                     }
                 })
             }
+    }
+
+    private fun summarizeError(error: PlaybackException): String {
+        val httpCause = generateSequence(error.cause) { it.cause }
+            .filterIsInstance<HttpDataSource.InvalidResponseCodeException>()
+            .firstOrNull()
+        return when {
+            httpCause != null -> "HTTP ${httpCause.responseCode}"
+            error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
+                error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> "NETWORK"
+            error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
+                error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED ||
+                error.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED -> "CODEC"
+            else -> error.errorCodeName.removePrefix("ERROR_CODE_")
+        }
     }
 
     companion object {

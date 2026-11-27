@@ -16,6 +16,9 @@ interface PlayerPort {
     fun currentPositionMs(): Long
     fun currentDurationMs(): Long
 
+    /** Current buffered position in ms for progressive/HLS VOD progress bars. */
+    fun currentBufferedPositionMs(): Long = 0L
+
     /**
      * True when the current item is a live stream. For live items the player's
      * duration/position describe a sliding window rather than the programme, so
@@ -76,6 +79,8 @@ class CastSession(
         private set
     @Volatile var playbackSpeed: Float = PlaybackSpeedPolicy.DEFAULT_SPEED
         private set
+    @Volatile var lastError: String? = null
+        private set
 
     /** Monotonically incremented on every [setUri] so stale async player callbacks are ignored. */
     private var generation: Long = 0L
@@ -120,6 +125,7 @@ class CastSession(
             currentUri = uri?.takeIf { it.isNotBlank() }
             currentMetaData = currentUri?.let { metaData }
             currentTitle = currentMetaData?.let { DidlParser.extractTitle(it) }
+            lastError = null
             resetPlaybackSpeedLocked()
             resetElapsedLocked()
             state = TransportState.NO_MEDIA_PRESENT
@@ -141,6 +147,7 @@ class CastSession(
                 TransportState.PLAYING, TransportState.TRANSITIONING -> null
                 else -> {
                     val uri = currentUri ?: return
+                    lastError = null
                     port.prepareAndPlay(uri)
                     resetElapsedLocked()
                     markElapsedRunningLocked()
@@ -181,6 +188,7 @@ class CastSession(
                 TransportState.PLAYING -> null
                 else -> {
                     val uri = currentUri ?: return
+                    lastError = null
                     port.prepareAndPlay(uri)
                     resetElapsedLocked()
                     markElapsedRunningLocked()
@@ -266,6 +274,7 @@ class CastSession(
     fun onPlayerPrepared(expectedGeneration: Long? = null) {
         val next: TransportState? = synchronized(lock) {
             if (expectedGeneration != null && expectedGeneration != generation) return
+            lastError = null
             if (isLive() && playbackSpeed != PlaybackSpeedPolicy.DEFAULT_SPEED) {
                 resetPlaybackSpeedLocked()
             }
@@ -298,9 +307,10 @@ class CastSession(
 
     /** Player callback: fatal error; park in STOPPED, keep serving control actions. */
     @JvmOverloads
-    fun onPlayerError(expectedGeneration: Long? = null) {
+    fun onPlayerError(expectedGeneration: Long? = null, reason: String? = null) {
         val next: TransportState? = synchronized(lock) {
             if (expectedGeneration != null && expectedGeneration != generation) return
+            lastError = reason?.takeIf { it.isNotBlank() } ?: "PLAYBACK_ERROR"
             if (state != TransportState.STOPPED) {
                 port.stop()
                 resetElapsedLocked()
@@ -311,6 +321,14 @@ class CastSession(
             }
         }
         next?.let(::notifyListeners)
+    }
+
+    fun bufferedPositionMs(): Long = synchronized(lock) {
+        when (state) {
+            TransportState.PLAYING, TransportState.PAUSED_PLAYBACK, TransportState.TRANSITIONING ->
+                if (isLive()) 0L else port.currentBufferedPositionMs().coerceAtLeast(0L)
+            else -> 0L
+        }
     }
 
     fun positionMs(): Long = synchronized(lock) {

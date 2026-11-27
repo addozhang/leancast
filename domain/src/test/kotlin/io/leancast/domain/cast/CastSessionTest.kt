@@ -21,6 +21,7 @@ class CastSessionTest {
         var stopCount = 0
         var overridePositionMs = 0L
         var overrideDurationMs = 0L
+        var overrideBufferedMs = 0L
 
         override fun prepareAndPlay(uri: String) {
             preparedUri = uri; playing = true; paused = false
@@ -31,6 +32,7 @@ class CastSessionTest {
         override fun stop() { stopCount++; playing = false; paused = false }
         override fun currentPositionMs() = overridePositionMs
         override fun currentDurationMs() = overrideDurationMs
+        override fun currentBufferedPositionMs() = overrideBufferedMs
     }
 
     private class RecordingListener : CastSession.Listener {
@@ -217,5 +219,31 @@ class CastSessionTest {
         threads.forEach { it.start() }
         threads.forEach { it.join(5_000) }
         assertTrue(session.volume in 0..100)
+    }
+
+    @Test
+    fun `lastError records playback failure reason and clears on next cast`() {
+        session.setUri("http://x/bad.mp4", null)
+        session.play()
+        session.onPlayerError(session.mediaGeneration(), reason = "HTTP 403")
+        assertEquals(TransportState.STOPPED, session.state)
+        assertEquals("HTTP 403", session.lastError)
+
+        session.setUri("http://x/good.mp4", null)
+        assertNull(session.lastError)
+    }
+
+    @Test
+    fun `bufferedPositionMs reports port buffer while active and zero when stopped`() {
+        port.overrideBufferedMs = 90_000L
+        assertEquals(0L, session.bufferedPositionMs())
+
+        session.setUri("http://x/v.mp4", null)
+        session.play()
+        session.onPlayerPrepared()
+        assertEquals(90_000L, session.bufferedPositionMs())
+
+        session.stop()
+        assertEquals(0L, session.bufferedPositionMs())
     }
 }
