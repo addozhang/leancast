@@ -30,6 +30,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import io.leancast.domain.cast.OsdFormatter
 import io.leancast.domain.cast.TransportState
+import io.leancast.domain.update.UpdateCheckThrottle
+import io.leancast.domain.update.UpdateManifest
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * 10-foot Android TV dashboard calibrated for dark living rooms:
@@ -66,12 +70,27 @@ class MainActivity : AppCompatActivity() {
     private lateinit var resumePlayerSub: TextView
     private lateinit var resumePlayerPill: TextView
     private lateinit var resumeProgressBar: ProgressBar
+    private lateinit var heroUpdateBadge: TextView
+    private lateinit var updateStatus: TextView
+    private lateinit var updatePill: TextView
 
     private var renderedBadgeKey: String? = null
     private var renderedStatusBoxKey: String? = null
     private var renderedAutostart: Boolean? = null
     private var renderedServiceRunning: Boolean? = null
+    private var renderedUpdateKey: String? = null
     private var wasResumeVisible: Boolean = false
+
+    private val updateExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "leancast-updater").apply { isDaemon = true }
+    }
+    @Volatile private var updateChecking: Boolean = false
+    @Volatile private var updateDownloading: Boolean = false
+    @Volatile private var availableUpdate: UpdateManifest? = null
+    private var updateModalRefresh: (() -> Unit)? = null
+    private var updateModalMessage: String? = null
+    private var updateDownloadPercent: Int? = null
+    private var updateVerifying: Boolean = false
 
     private val poll = Handler(Looper.getMainLooper())
     private val pollTask = object : Runnable {
@@ -126,11 +145,18 @@ class MainActivity : AppCompatActivity() {
         val target = if (resumePlayerCard.visibility == View.VISIBLE) resumePlayerCard else renameCard
         target.post { target.requestFocus() }
         poll.postDelayed(pollTask, 1000)
+        maybeAutoCheckUpdate()
     }
 
     override fun onPause() {
         poll.removeCallbacks(pollTask)
         super.onPause()
+    }
+
+    override fun onDestroy() {
+        updateModalRefresh = null
+        updateExecutor.shutdownNow()
+        super.onDestroy()
     }
 
     private fun buildLeftHeroCard(): View {
@@ -184,6 +210,22 @@ class MainActivity : AppCompatActivity() {
             )
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             leftMargin = dp(8)
+        })
+        heroUpdateBadge = TextView(this).apply {
+            setTextColor(Color.parseColor("#7DD3FC"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.5f)
+            typeface = Typeface.MONOSPACE
+            setPadding(dp(7), dp(2), dp(7), dp(2))
+            background = roundedRect(
+                fillColor = Color.parseColor("#3338BDF8"),
+                strokeColor = Color.parseColor("#6638BDF8"),
+                strokeWidthPx = dp(1),
+                radiusPx = dp(6).toFloat(),
+            )
+            visibility = View.GONE
+        }
+        brandRow.addView(heroUpdateBadge, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            leftMargin = dp(6)
         })
         titleCol.addView(brandRow)
         titleCol.addView(TextView(this).apply {
@@ -481,7 +523,20 @@ class MainActivity : AppCompatActivity() {
                 recreate()
             },
         )
-        col.addView(langRefs.card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        col.addView(langRefs.card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = dp(12)
+        })
+
+        // Card 5: Opt-in App Updates (default OFF for zero outbound traffic)
+        val updateRefs = makeActionCard(
+            title = getString(R.string.setting_updates),
+            subtitle = "",
+            pillText = "",
+            onClick = { showUpdateDialog() },
+        )
+        updateStatus = updateRefs.subtitle
+        updatePill = updateRefs.pill
+        col.addView(updateRefs.card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         scroll.addView(col, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         return scroll
@@ -726,6 +781,50 @@ class MainActivity : AppCompatActivity() {
                 roundedRect(Color.parseColor("#B37F1D1D"), Color.parseColor("#99B91C1C"), dp(1), dp(999).toFloat())
             }
         }
+
+        // Opt-in Updates card & hero version badge
+        val updateEnabled = settings.updateCheckEnabled
+        val avail = if (updateEnabled) availableUpdate else null
+        val updateKey = "$updateEnabled|$updateChecking|${avail?.version.orEmpty()}"
+        if (renderedUpdateKey != updateKey) {
+            renderedUpdateKey = updateKey
+            when {
+                !updateEnabled -> {
+                    updateStatus.text = getString(R.string.setting_updates_off)
+                    updatePill.text = getString(R.string.pill_off)
+                    updatePill.setTextColor(Color.parseColor("#94A3B8"))
+                    updatePill.background = neutralPillDrawable()
+                    heroUpdateBadge.visibility = View.GONE
+                }
+                avail != null -> {
+                    updateStatus.text = getString(R.string.setting_updates_available, avail.version)
+                    updatePill.text = "v${avail.version}"
+                    updatePill.setTextColor(Color.parseColor("#7DD3FC"))
+                    updatePill.background = roundedRect(
+                        Color.parseColor("#3338BDF8"),
+                        Color.parseColor("#6638BDF8"),
+                        dp(1),
+                        dp(999).toFloat(),
+                    )
+                    heroUpdateBadge.text = "↑ v${avail.version}"
+                    heroUpdateBadge.visibility = View.VISIBLE
+                }
+                updateChecking -> {
+                    updateStatus.text = getString(R.string.setting_updates_checking)
+                    updatePill.text = getString(R.string.pill_checking)
+                    updatePill.setTextColor(Color.parseColor("#CBD5E1"))
+                    updatePill.background = neutralPillDrawable()
+                    heroUpdateBadge.visibility = View.GONE
+                }
+                else -> {
+                    updateStatus.text = getString(R.string.setting_updates_on, appVersionName())
+                    updatePill.text = getString(R.string.pill_on)
+                    updatePill.setTextColor(Color.parseColor("#052E16"))
+                    updatePill.background = roundedRect(Color.parseColor("#E634D399"), 0, 0, dp(999).toFloat())
+                    heroUpdateBadge.visibility = View.GONE
+                }
+            }
+        }
     }
 
     private fun styleBadge(bgHex: String, borderHex: String, dotHex: String, textHex: String, label: String) {
@@ -946,6 +1045,338 @@ class MainActivity : AppCompatActivity() {
             }
             setOnClickListener { onClick() }
         }
+    }
+
+    private fun maybeAutoCheckUpdate() {
+        val now = System.currentTimeMillis()
+        if (!UpdateCheckThrottle.shouldAutoCheck(settings.updateCheckEnabled, settings.lastUpdateCheckMs, now)) {
+            return
+        }
+        startUpdateCheck(manual = false)
+    }
+
+    private fun startUpdateCheck(manual: Boolean) {
+        if (!settings.updateCheckEnabled) return
+        if (updateChecking || updateDownloading) return
+
+        updateChecking = true
+        settings.lastUpdateCheckMs = System.currentTimeMillis()
+        if (manual) {
+            updateModalMessage = getString(R.string.update_status_checking)
+        }
+        renderStatus()
+        updateModalRefresh?.invoke()
+
+        val currentVersion = appVersionName()
+        runCatching {
+            updateExecutor.execute {
+                val result = AppUpdater.checkForUpdate(currentVersion)
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    updateChecking = false
+                    if (!settings.updateCheckEnabled) {
+                        availableUpdate = null
+                        updateModalMessage = null
+                        renderStatus()
+                        updateModalRefresh?.invoke()
+                        return@runOnUiThread
+                    }
+                    when (result) {
+                        is AppUpdater.CheckResult.UpdateAvailable -> {
+                            availableUpdate = result.manifest
+                            updateModalMessage = null
+                        }
+                        is AppUpdater.CheckResult.UpToDate -> {
+                            availableUpdate = null
+                            if (manual) {
+                                updateModalMessage = getString(R.string.update_status_uptodate, currentVersion)
+                            }
+                        }
+                        is AppUpdater.CheckResult.Failed -> {
+                            if (manual) {
+                                updateModalMessage = getString(R.string.update_status_error, result.reason)
+                            }
+                        }
+                    }
+                    renderStatus()
+                    updateModalRefresh?.invoke()
+                }
+            }
+        }.onFailure {
+            updateChecking = false
+            renderStatus()
+            updateModalRefresh?.invoke()
+        }
+    }
+
+    private fun startUpdateDownload(manifest: UpdateManifest, dialog: Dialog) {
+        if (!settings.updateCheckEnabled || updateDownloading) return
+
+        updateDownloading = true
+        updateVerifying = false
+        updateDownloadPercent = 0
+        updateModalMessage = getString(R.string.update_status_downloading, manifest.version, 0)
+        updateModalRefresh?.invoke()
+
+        val cacheDir = AppUpdater.updatesCacheDir(applicationContext)
+        runCatching {
+            updateExecutor.execute {
+                val result = AppUpdater.downloadAndVerifyApk(
+                    manifest = manifest,
+                    targetDir = cacheDir,
+                ) { stage ->
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed) return@runOnUiThread
+                        when (stage) {
+                            is AppUpdater.DownloadStage.Downloading -> {
+                                updateVerifying = false
+                                updateDownloadPercent = stage.percent
+                                updateModalMessage = getString(
+                                    R.string.update_status_downloading,
+                                    manifest.version,
+                                    stage.percent,
+                                )
+                            }
+                            AppUpdater.DownloadStage.Verifying -> {
+                                updateVerifying = true
+                                updateDownloadPercent = 100
+                                updateModalMessage = getString(R.string.update_status_verifying)
+                            }
+                        }
+                        updateModalRefresh?.invoke()
+                    }
+                }
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    updateDownloading = false
+                    updateVerifying = false
+                    updateDownloadPercent = null
+                    when (result) {
+                        is AppUpdater.DownloadResult.Ready -> {
+                            when (AppUpdater.launchInstaller(this, result.apkFile)) {
+                                AppUpdater.InstallOutcome.LAUNCHED -> {
+                                    if (dialog.isShowing) dialog.dismiss()
+                                }
+                                AppUpdater.InstallOutcome.PERMISSION_REQUIRED -> {
+                                    updateModalMessage = getString(R.string.update_status_permission)
+                                }
+                                AppUpdater.InstallOutcome.INSTALLER_UNAVAILABLE -> {
+                                    updateModalMessage = getString(R.string.update_status_no_installer)
+                                }
+                            }
+                        }
+                        is AppUpdater.DownloadResult.IntegrityError -> {
+                            updateModalMessage = getString(R.string.update_status_integrity_error)
+                        }
+                        is AppUpdater.DownloadResult.Failed -> {
+                            updateModalMessage = getString(R.string.update_status_error, result.reason)
+                        }
+                    }
+                    updateModalRefresh?.invoke()
+                }
+            }
+        }.onFailure {
+            updateDownloading = false
+            updateVerifying = false
+            updateDownloadPercent = null
+            updateModalRefresh?.invoke()
+        }
+    }
+
+    /** Dark TV-styled update modal with D-pad opt-in toggle, changelog, and verified installer flow. */
+    private fun showUpdateDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = roundedRect(
+                fillColor = Color.parseColor("#0F172A"),
+                strokeColor = Color.parseColor("#334155"),
+                strokeWidthPx = dp(1),
+                radiusPx = dp(18).toFloat(),
+            )
+            setPadding(dp(26), dp(22), dp(26), dp(22))
+        }
+
+        card.addView(TextView(this).apply {
+            text = getString(R.string.update_modal_title)
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 19f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+        })
+        card.addView(TextView(this).apply {
+            text = getString(R.string.update_modal_sub, appVersionName())
+            setTextColor(Color.parseColor("#94A3B8"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(4)
+        })
+
+        // Focusable opt-in toggle row
+        lateinit var refreshModal: () -> Unit
+        val toggleRefs = makeActionCard(
+            title = getString(R.string.update_toggle_title),
+            subtitle = getString(R.string.update_toggle_desc),
+            pillText = "",
+            onClick = {
+                if (updateDownloading) return@makeActionCard
+                val enabling = !settings.updateCheckEnabled
+                settings.updateCheckEnabled = enabling
+                if (enabling) {
+                    updateModalMessage = null
+                    renderStatus()
+                    refreshModal()
+                    startUpdateCheck(manual = true)
+                } else {
+                    availableUpdate = null
+                    updateModalMessage = null
+                    renderStatus()
+                    refreshModal()
+                }
+            },
+        )
+        card.addView(toggleRefs.card, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(16)
+        })
+
+        // Status + scrollable changelog box
+        val infoBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = roundedRect(
+                fillColor = Color.parseColor("#BF020617"),
+                strokeColor = Color.parseColor("#1E293B"),
+                strokeWidthPx = dp(1),
+                radiusPx = dp(12).toFloat(),
+            )
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+        }
+        val statusText = TextView(this).apply {
+            setTextColor(Color.parseColor("#E2E8F0"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+        }
+        infoBox.addView(statusText)
+
+        val changelogScroll = ScrollView(this).apply {
+            isVerticalScrollBarEnabled = true
+            visibility = View.GONE
+        }
+        val changelogText = TextView(this).apply {
+            setTextColor(Color.parseColor("#94A3B8"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setLineSpacing(dp(2).toFloat(), 1f)
+        }
+        changelogScroll.addView(changelogText)
+        infoBox.addView(changelogScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(120)).apply {
+            topMargin = dp(8)
+        })
+
+        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            progress = 0
+            progressDrawable = buildMiniProgressDrawable()
+            visibility = View.GONE
+        }
+        infoBox.addView(progressBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(6)).apply {
+            topMargin = dp(10)
+        })
+
+        card.addView(infoBox, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(14)
+        })
+
+        // Action buttons
+        val btnRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+        }
+        val closeBtn = makeModalButton(
+            label = getString(R.string.btn_close),
+            primary = false,
+            onClick = { dialog.dismiss() },
+        )
+        val checkBtn = makeModalButton(
+            label = getString(R.string.btn_check_now),
+            primary = false,
+            onClick = { startUpdateCheck(manual = true) },
+        )
+        val installBtn = makeModalButton(
+            label = getString(R.string.btn_download_install),
+            primary = true,
+            onClick = {
+                availableUpdate?.let { startUpdateDownload(it, dialog) }
+            },
+        )
+        btnRow.addView(closeBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            rightMargin = dp(10)
+        })
+        btnRow.addView(checkBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            rightMargin = dp(10)
+        })
+        btnRow.addView(installBtn)
+        card.addView(btnRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(18)
+        })
+
+        refreshModal = {
+            val enabled = settings.updateCheckEnabled
+            val avail = if (enabled) availableUpdate else null
+
+            toggleRefs.pill.text = if (enabled) getString(R.string.pill_on) else getString(R.string.pill_off)
+            toggleRefs.pill.setTextColor(if (enabled) Color.parseColor("#052E16") else Color.parseColor("#94A3B8"))
+            toggleRefs.pill.background = if (enabled) {
+                roundedRect(Color.parseColor("#E634D399"), 0, 0, dp(999).toFloat())
+            } else {
+                neutralPillDrawable()
+            }
+
+            statusText.text = when {
+                !enabled -> getString(R.string.update_status_disabled)
+                updateModalMessage != null -> updateModalMessage
+                updateChecking -> getString(R.string.update_status_checking)
+                avail != null -> getString(R.string.update_status_available, avail.version)
+                else -> getString(R.string.update_status_idle)
+            }
+
+            val notes = avail?.changelog?.takeIf { it.isNotBlank() }
+            if (enabled && notes != null) {
+                changelogText.text = notes
+                changelogScroll.visibility = View.VISIBLE
+            } else {
+                changelogScroll.visibility = View.GONE
+            }
+
+            if (updateDownloading || updateVerifying) {
+                progressBar.visibility = View.VISIBLE
+                progressBar.isIndeterminate = updateVerifying
+                progressBar.progress = updateDownloadPercent ?: 0
+            } else {
+                progressBar.visibility = View.GONE
+            }
+
+            val canCheck = enabled && !updateChecking && !updateDownloading
+            checkBtn.visibility = if (enabled) View.VISIBLE else View.GONE
+            checkBtn.isEnabled = canCheck
+            checkBtn.isFocusable = canCheck
+            checkBtn.alpha = if (canCheck) 1f else 0.45f
+
+            val canInstall = enabled && avail != null && !updateDownloading
+            installBtn.visibility = if (enabled && avail != null) View.VISIBLE else View.GONE
+            installBtn.isEnabled = canInstall
+            installBtn.isFocusable = canInstall
+            installBtn.alpha = if (canInstall) 1f else 0.45f
+        }
+
+        updateModalRefresh = refreshModal
+        dialog.setOnDismissListener { updateModalRefresh = null }
+        refreshModal()
+
+        dialog.setContentView(card, ViewGroup.LayoutParams(dp(580), ViewGroup.LayoutParams.WRAP_CONTENT))
+        dialog.show()
+        val initialFocus = if (settings.updateCheckEnabled && availableUpdate != null) installBtn else toggleRefs.card
+        initialFocus.post { initialFocus.requestFocus() }
     }
 
     private fun appVersionName(): String = runCatching {

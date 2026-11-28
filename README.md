@@ -33,8 +33,10 @@ Phone app --SSDP--> discovers  Phone app --SOAP SetAVTransportURI--> LeanCast
   Back = exit; on-screen HUD with live progress bar, media title, and
   seek/speed feedback in English or Chinese.
 - **Lean & private**: lighter than the stock TV launcher (see below); zero
-  analytics, zero non-LAN network calls; pure-Kotlin APK with **no native
-  libs** — one artifact runs on `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`.
+  analytics, zero non-LAN network calls by default (optional in-app update
+  checks are **off by default** and never poll in the background); pure-Kotlin
+  APK with **no native libs** — one artifact runs on `armeabi-v7a`,
+  `arm64-v8a`, `x86`, `x86_64`.
 - **Nothing hardcoded**: the cast name defaults to `LeanCast` and is
   user-renamable; UUID is derived from the device id, so it survives reboots
   **and reinstalls**; UI language switchable between

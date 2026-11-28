@@ -47,6 +47,16 @@ class Settings(private val appContext: Context) {
         get() = prefs.getBoolean(KEY_AUTOSTART, false)
         set(value) = prefs.edit().putBoolean(KEY_AUTOSTART, value).apply()
 
+    /** Opt-in update checks (default OFF so out-of-the-box installs make zero outbound requests). */
+    var updateCheckEnabled: Boolean
+        get() = prefs.getBoolean(KEY_UPDATE_CHECK_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_UPDATE_CHECK_ENABLED, value).apply()
+
+    /** Epoch millis of the last automatic/manual update check attempt, used for 6-hour throttling. */
+    var lastUpdateCheckMs: Long
+        get() = prefs.getLong(KEY_LAST_UPDATE_CHECK_MS, 0L)
+        set(value) = prefs.edit().putLong(KEY_LAST_UPDATE_CHECK_MS, value).apply()
+
     /** Persisted UI language code: `"zh"` (Simplified Chinese, default) or `"en"` (English). */
     var language: String
         get() = prefs.getString(KEY_LANGUAGE, "zh") ?: "zh"
@@ -62,6 +72,8 @@ class Settings(private val appContext: Context) {
         private const val KEY_UUID = "uuid"
         private const val KEY_NAME = "friendly_name"
         private const val KEY_AUTOSTART = "autostart"
+        private const val KEY_UPDATE_CHECK_ENABLED = "update_check_enabled"
+        private const val KEY_LAST_UPDATE_CHECK_MS = "last_update_check_ms"
         private const val KEY_LANGUAGE = "language"
 
         /** Wraps [base] context with the user's selected locale (`zh` or `en`). */
