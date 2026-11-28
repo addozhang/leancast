@@ -33,4 +33,4 @@
 
 - [x] 5.1 Update `README.md` and `README.zh-CN.md` to document the opt-in update switch (default OFF, zero background polling)
 - [x] 5.2 Run `./gradlew :domain:test :app:testDebugUnitTest assembleDebug` and verify APK remains pure Kotlin (no `lib/` native directories)
-- [ ] 5.3 Verify on TV device: default OFF makes no requests, enabling checks & downloads from a test release/local manifest, D-pad focus and bilingual strings render cleanly
+- [x] 5.3 Verify on TV device: default OFF makes no requests, enabling checks & downloads from a test release/local manifest, D-pad focus and bilingual strings render cleanly (verified end-to-end on API 34 1080p emulator against live `dl.solocraft.app` `v0.3.1`)

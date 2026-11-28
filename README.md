@@ -5,7 +5,7 @@ English | [简体中文](README.zh-CN.md)
 **[Download APK](https://github.com/addozhang/leancast/releases/latest) · [Website](https://solocraft.app/leancast) · [Supported devices](#supported-devices) · [Report device compatibility](https://github.com/addozhang/leancast/issues/new?template=device-compatibility.yml)**
 
 <p align="center">
-  <img src="docs/screenshots/main-en.png?v=3" width="49%" alt="LeanCast TV dashboard" />
+  <img src="docs/screenshots/main-en.png?v=4" width="49%" alt="LeanCast TV dashboard" />
   <img src="docs/screenshots/player-osd-en.png?v=3" width="49%" alt="LeanCast playback OSD" />
 </p>
 
